@@ -33,6 +33,8 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+Then open http://localhost:8501 in your browser (Streamlit usually opens it for you).
+
 Some things to try:
 
 - tap the card without scanning, then scan and tap again
