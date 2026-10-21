@@ -1,0 +1,8 @@
+streamlit>=1.40
+pyotp>=2.9
+pandas>=2.0
+numpy>=1.26
+scikit-learn>=1.3
+plotly>=5.20
+# Real Touch ID on macOS (skipped automatically on Windows/Linux)
+pyobjc-framework-LocalAuthentication>=10.0; sys_platform == "darwin"
