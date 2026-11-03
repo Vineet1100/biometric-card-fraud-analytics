@@ -134,6 +134,7 @@ button,input,select{font:inherit;color:inherit}
 .sensor-read{text-align:center}
 .sensor-read b{display:block;font:700 1.6rem/1 var(--f-display);letter-spacing:.04em}
 .sensor-read span{font:400 .78rem/1.4 var(--f-mono);color:var(--muted)}
+.tid-note{margin:0;display:grid;gap:8px;justify-items:center;text-align:center;font-size:.86rem;color:var(--muted);max-width:30ch}
 .finger{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:.84rem;color:var(--muted)}
 
 /* missions */
@@ -276,6 +277,8 @@ input[type=range]{width:100%;accent-color:var(--holo)}
           <span class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4a7 7 0 0 0-7 7v2"/><path d="M19 13v-2a7 7 0 0 0-3.5-6.06"/><path d="M12 7.5a3.5 3.5 0 0 0-3.5 3.5v3a6 6 0 0 0 1.2 3.6"/><path d="M15.5 11v2.5a9 9 0 0 1-.9 4"/><path d="M12 11v3.5a8 8 0 0 0 1.5 4.7"/></svg></span>
         </button>
         <div class="sensor-read"><b id="sensorBig">LOCKED</b><span id="sensorSmall">Press and hold the sensor to scan</span></div>
+        <p class="tid-note" id="tidNote" hidden>Your real fingerprint and laptop notifications only work when the demo has its own browser tab.
+          <a class="btn gold" href="https://vineet1100.github.io/biometric-card-fraud-analytics/" target="_blank" rel="noopener">Open full version</a></p>
         <div class="finger" id="modeRow" hidden><span>Sensor:</span>
           <div class="seg" role="group" aria-label="Sensor">
             <button id="mTouch" aria-pressed="true">Touch ID</button><button id="mSim" aria-pressed="false">Simulated</button>
@@ -572,12 +575,18 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
   const fromB64 = (str) => Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
   try { const saved = localStorage.getItem("cardlab-passkey"); if (saved) TID.credId = fromB64(saved); } catch {}
-  if (window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+  // browsers block passkeys and notifications for pages embedded in another site
+  const embedded = (() => { try { return window.self !== window.top; } catch { return true; } })();
+  const policyBlocks = !!(document.featurePolicy && !document.featurePolicy.allowsFeature("publickey-credentials-get"));
+  if (embedded || policyBlocks) {
+    $("tidNote").hidden = false;
+  } else if (window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
     PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
       .then((ok) => { TID.available = ok; if (ok) setMode("touch"); })
       .catch(() => {});
   }
   async function touchId() {
+    const started = performance.now();
     try {
       if (!TID.credId) {
         // first scan enrols a passkey for this page; creating it already needs the fingerprint
@@ -596,8 +605,9 @@ input[type=range]{width:100%;accent-color:var(--holo)}
         userVerification: "required", timeout: 60000 } });
       return "match";
     } catch (e) {
-      if (e && e.name === "NotAllowedError") return "fail";  // wrong finger, cancelled or timed out
-      return "unavailable";                                  // e.g. blocked inside an embedded frame
+      // a NotAllowedError that comes back instantly means no prompt was shown at all
+      if (e && e.name === "NotAllowedError" && performance.now() - started > 600) return "fail";
+      return "unavailable";
     }
   }
   async function runTouch(handler) {
@@ -610,7 +620,8 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     TID.busy = false; reactor.classList.remove("scanning");
     if (result === "unavailable") {
       setMode("sim");
-      say("Touch ID isn't available here, so the sensor switched to simulation. Open the GitHub Pages version to use your real fingerprint.");
+      $("tidNote").hidden = false;
+      say("Touch ID was blocked here, so the sensor switched to simulation. Use Open full version to scan your real finger.");
       tick(); return;
     }
     handler(result === "match");
