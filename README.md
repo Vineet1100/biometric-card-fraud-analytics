@@ -4,6 +4,10 @@ A Streamlit app that simulates a payment card that only works for its owner, plu
 
 I wanted to see how a few ideas from card security fit together in one place: biometric cards, dynamic CVVs, step-up authentication and transaction monitoring. So I built all three parties (card, merchants, bank) into a single app you can click through.
 
+**Live demo:** https://vineet1100.github.io/biometric-card-fraud-analytics/
+
+The live demo is a browser version of the app (`docs/index.html`) so it runs from a link with nothing to install. It uses the same TOTP and fraud-detection methods as `app.py`. The Python version adds real Touch ID and macOS approval alerts.
+
 ## What it does
 
 **In store.** The card's chip stays locked until a fingerprint matches, then unlocks for 15 seconds. Tapping outside that window gets declined. On a Mac it uses the real Touch ID sensor; anywhere else the scan is simulated.

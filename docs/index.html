@@ -1,0 +1,880 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Biometric Card Lab</title>
+<meta name="description" content="Interactive demo of a biometric payment card with a dynamic CVV, push approval and fraud detection.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --void:#04070D; --deck:#07101B; --panel:#0B1724; --panel-2:#0F1F30;
+  --line:rgba(94,231,255,.16); --line-strong:rgba(94,231,255,.38);
+  --holo:#5EE7FF; --holo-dim:#2B6F80; --ink:#DDF7FF; --muted:#80A4B4;
+  --gold:#F2B63D; --red:#FF4D5E; --green:#47F0A0; --amber:#FFC857;
+  --f-display:'Chakra Petch','Arial Narrow',system-ui,sans-serif;
+  --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--void)}
+body{color:var(--ink);font:15px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:18px 40px;
+  background:
+    radial-gradient(900px 500px at 18% -10%,rgba(94,231,255,.10),transparent 60%),
+    radial-gradient(700px 420px at 100% 0%,rgba(242,182,61,.06),transparent 60%),
+    repeating-linear-gradient(0deg,rgba(94,231,255,.025) 0 1px,transparent 1px 4px),
+    var(--void);
+  min-height:100%}
+a{color:var(--holo)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.wrap{max-width:1360px;margin:0 auto;display:grid;gap:18px}
+.mono{font-family:var(--f-mono)}
+.num{font-variant-numeric:tabular-nums}
+
+/* top bar */
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 20px;
+  border:1px solid var(--line);border-radius:14px;padding:12px 16px;background:linear-gradient(180deg,rgba(15,31,48,.75),rgba(7,16,27,.75))}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.reactor-mini{width:34px;height:34px;border-radius:50%;flex:none;
+  background:radial-gradient(circle,#E8FBFF 0 18%,var(--holo) 24%,rgba(94,231,255,.15) 46%,transparent 62%);
+  box-shadow:0 0 18px rgba(94,231,255,.55),inset 0 0 0 2px rgba(94,231,255,.5)}
+.brand h1{font:700 1.25rem/1.1 var(--f-display);letter-spacing:.04em;margin:0}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:.86rem}
+.bar-right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:5px 11px;
+  font:500 .76rem/1 var(--f-mono);color:var(--muted);background:rgba(4,7,13,.5)}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;border:1px solid var(--line-strong);
+  background:rgba(94,231,255,.06);padding:9px 14px;font:600 .86rem/1 var(--f-display);letter-spacing:.05em;cursor:pointer;
+  transition:background .2s,border-color .2s,transform .1s}
+.btn:hover{background:rgba(94,231,255,.14);border-color:var(--holo)}
+.btn:active{transform:translateY(1px)}
+.btn.gold{background:linear-gradient(180deg,#FFD27A,var(--gold));color:#1B1203;border-color:transparent}
+.btn.gold:hover{filter:brightness(1.08)}
+.btn.red{border-color:rgba(255,77,94,.6);background:rgba(255,77,94,.08)}
+.btn.red:hover{background:rgba(255,77,94,.18);border-color:var(--red)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:rgba(4,7,13,.5)}
+.seg button{border:0;background:none;border-radius:999px;padding:5px 11px;font:500 .76rem/1 var(--f-mono);color:var(--muted);cursor:pointer}
+.seg button[aria-pressed="true"]{background:rgba(94,231,255,.16);color:var(--ink)}
+
+/* NOVA voice line */
+.nova{display:flex;gap:12px;align-items:center;border-left:2px solid var(--holo);padding:6px 12px;
+  font:500 .92rem/1.4 var(--f-mono);color:var(--holo);background:linear-gradient(90deg,rgba(94,231,255,.08),transparent 70%);min-height:38px}
+.nova b{color:var(--gold);font-weight:500;flex:none}
+.nova span{min-width:0}
+
+/* main grid */
+.main{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr) minmax(260px,320px);gap:18px;align-items:start}
+.panel{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,rgba(15,31,48,.8),rgba(7,16,27,.85));
+  position:relative;min-width:0}
+.panel::before{content:"";position:absolute;inset:-1px;border-radius:16px;pointer-events:none;
+  background:linear-gradient(135deg,var(--holo) 0 14px,transparent 14px) top left/30px 30px no-repeat,
+             linear-gradient(-45deg,var(--holo) 0 14px,transparent 14px) bottom right/30px 30px no-repeat;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;padding:1px;opacity:.7}
+.panel-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:14px 16px 0}
+.panel-h h2{font:600 .95rem/1 var(--f-display);letter-spacing:.12em;text-transform:uppercase;margin:0;color:var(--holo)}
+.panel-h span{font:400 .74rem/1 var(--f-mono);color:var(--muted)}
+.pad{padding:14px 16px 16px}
+
+/* card */
+.stage{perspective:1100px;padding:18px 6px 6px}
+.card{position:relative;aspect-ratio:1.586;max-width:100%;border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-between;
+  background:
+    linear-gradient(115deg,transparent 30%,rgba(255,255,255,.08) 45%,transparent 58%),
+    repeating-linear-gradient(90deg,rgba(94,231,255,.05) 0 1px,transparent 1px 22px),
+    repeating-linear-gradient(0deg,rgba(94,231,255,.05) 0 1px,transparent 1px 22px),
+    linear-gradient(140deg,#123048 0%,#0A1A2B 50%,#050B14 100%);
+  border:1px solid var(--line-strong);transform:rotateX(9deg) rotateY(-12deg);transition:transform .6s cubic-bezier(.2,.7,.2,1),box-shadow .4s;
+  box-shadow:0 30px 60px -28px rgba(0,0,0,.9),0 0 34px -12px rgba(94,231,255,.5);overflow:hidden}
+.card:hover{transform:rotateX(0) rotateY(0)}
+.card.on{border-color:var(--green);box-shadow:0 30px 60px -28px rgba(0,0,0,.9),0 0 40px -6px rgba(71,240,160,.55)}
+.card.blocked{border-color:var(--red);box-shadow:0 30px 60px -28px rgba(0,0,0,.9),0 0 36px -8px rgba(255,77,94,.55)}
+.card::after{content:"";position:absolute;left:0;right:0;height:40%;top:-40%;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(94,231,255,.12),transparent);animation:sweep 4.5s linear infinite}
+@keyframes sweep{to{top:110%}}
+.c-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.c-brand{font:700 1rem/1 var(--f-display);letter-spacing:.14em}
+.c-tier{font:400 .62rem/1 var(--f-mono);color:var(--muted);margin-top:4px}
+.c-chip{width:44px;height:33px;border-radius:7px;border:1px solid #8A6A22;
+  background:linear-gradient(90deg,transparent 30%,rgba(60,40,5,.5) 30% 33%,transparent 33% 67%,rgba(60,40,5,.5) 67% 70%,transparent 70%),
+    linear-gradient(0deg,transparent 45%,rgba(60,40,5,.5) 45% 55%,transparent 55%),linear-gradient(135deg,#FFE29A,#C8952F 55%,#F2CF7C);transition:filter .3s}
+.card:not(.on) .c-chip{filter:grayscale(.9) brightness(.55)}
+.c-state{font:500 .66rem/1 var(--f-mono);padding:4px 8px;border-radius:999px;border:1px solid var(--line-strong);color:var(--muted)}
+.card.on .c-state{color:var(--green);border-color:var(--green)}
+.card.blocked .c-state{color:var(--red);border-color:var(--red)}
+.c-pan{font:500 clamp(.95rem,4.6vw,1.3rem)/1 var(--f-mono);letter-spacing:.16em;text-shadow:0 0 12px rgba(94,231,255,.35)}
+.c-meta{font:400 .6rem/1.35 var(--f-mono);color:var(--muted)}
+.c-meta b{display:block;font:600 .78rem/1.3 var(--f-display);letter-spacing:.1em;color:var(--ink)}
+.eink{background:#D8DCD3;color:#151A16;border-radius:6px;padding:4px 8px 5px;min-width:64px;box-shadow:inset 0 0 0 1px #A6AA9F}
+.eink small{display:block;font:500 .52rem/1.2 var(--f-body);color:#4B514A}
+.eink b{font:600 1.25rem/1.05 var(--f-mono);letter-spacing:.18em}
+.eink i{display:block;height:3px;background:#B4B8AC;margin-top:3px;border-radius:2px;overflow:hidden}
+.eink i span{display:block;height:100%;background:#22281F}
+
+/* fingerprint sensor */
+.sensor{display:grid;justify-items:center;gap:10px;padding:6px 0 4px}
+.reactor{position:relative;width:180px;height:180px;border:0;background:none;padding:0;cursor:pointer;border-radius:50%;touch-action:none;-webkit-user-select:none;user-select:none}
+.reactor svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.reactor .core{position:absolute;inset:44px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle,#E8FBFF 0 10%,rgba(94,231,255,.55) 32%,rgba(94,231,255,.08) 60%,transparent 72%);
+  box-shadow:0 0 30px rgba(94,231,255,.45),inset 0 0 22px rgba(94,231,255,.35);transition:box-shadow .3s,background .3s}
+.reactor .core svg{position:static;width:46px;height:46px;color:#05202A}
+.reactor.on .core{background:radial-gradient(circle,#EFFFF7 0 10%,rgba(71,240,160,.6) 32%,rgba(71,240,160,.1) 60%,transparent 72%);box-shadow:0 0 44px rgba(71,240,160,.6),inset 0 0 22px rgba(71,240,160,.4)}
+.reactor.blocked .core{background:radial-gradient(circle,#FFE9EB 0 10%,rgba(255,77,94,.6) 32%,rgba(255,77,94,.1) 60%,transparent 72%);box-shadow:0 0 40px rgba(255,77,94,.6)}
+.reactor .spin{transform-origin:90px 90px;animation:spin 14s linear infinite}
+.reactor.scanning .spin{animation-duration:1.2s}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sensor-read{text-align:center}
+.sensor-read b{display:block;font:700 1.6rem/1 var(--f-display);letter-spacing:.04em}
+.sensor-read span{font:400 .78rem/1.4 var(--f-mono);color:var(--muted)}
+.finger{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;font-size:.84rem;color:var(--muted)}
+
+/* missions */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;padding:14px 16px 0}
+.tab{flex:1 1 140px;text-align:left;border:1px solid var(--line);border-radius:12px;background:rgba(4,7,13,.45);padding:10px 12px;cursor:pointer;min-width:0}
+.tab small{display:block;font:500 .68rem/1 var(--f-mono);color:var(--muted);letter-spacing:.08em}
+.tab b{display:block;font:600 .92rem/1.25 var(--f-display);letter-spacing:.03em;margin-top:5px}
+.tab[aria-selected="true"]{border-color:var(--holo);background:rgba(94,231,255,.09);box-shadow:inset 0 -2px 0 var(--holo)}
+.tab .done{color:var(--green)}
+.mission{padding:16px}
+.mission h3{font:600 1.35rem/1.2 var(--f-display);margin:0 0 4px;text-wrap:balance}
+.mission .lead{color:var(--muted);margin:0 0 14px;max-width:62ch}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+.field{display:grid;gap:5px;min-width:0}
+.field label{font:500 .72rem/1 var(--f-mono);color:var(--muted);letter-spacing:.06em}
+.input{background:rgba(4,7,13,.7);border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%;font-family:var(--f-mono)}
+.input:focus{border-color:var(--holo);outline:none;box-shadow:0 0 0 3px rgba(94,231,255,.15)}
+.lcd{font:500 1rem/1.4 var(--f-mono);border-radius:12px;padding:14px 16px;min-height:86px;margin:14px 0 0;
+  background:linear-gradient(180deg,#041912,#020D09);border:1px solid #154532;color:#6BF0B3;box-shadow:inset 0 0 26px rgba(0,0,0,.7)}
+.lcd .big{font:600 1.6rem/1.15 var(--f-display);letter-spacing:.08em}
+.lcd.bad{background:linear-gradient(180deg,#1D0709,#100405);border-color:#4D1A20;color:#FF8A95}
+.lcd.wait{background:linear-gradient(180deg,#1A1405,#0E0B03);border-color:#4D3D12;color:var(--amber)}
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.attack{border:1px solid rgba(255,77,94,.28);border-radius:12px;padding:14px;background:rgba(255,77,94,.04);display:grid;gap:8px;align-content:start}
+.attack h4{font:600 1rem/1.2 var(--f-display);margin:0;color:#FFB3BA}
+.attack p{margin:0;color:var(--muted);font-size:.9rem}
+
+/* push overlay */
+.push{margin-top:14px;border:1px solid var(--gold);border-radius:16px;padding:14px 16px;background:rgba(242,182,61,.06);display:grid;gap:10px;
+  box-shadow:0 0 30px -10px rgba(242,182,61,.45)}
+.push .who{font:600 .8rem/1 var(--f-mono);color:var(--gold);letter-spacing:.08em}
+.push .amt{font:700 2rem/1 var(--f-display)}
+.push p{margin:0;color:var(--muted)}
+.hold{position:relative;overflow:hidden}
+.hold .fill{position:absolute;inset:0;width:0;background:rgba(255,255,255,.35);pointer-events:none}
+
+/* fraud AI */
+.chart-wrap{position:relative;border:1px solid var(--line);border-radius:12px;background:rgba(4,7,13,.55);overflow:hidden}
+#chart{display:block;width:100%;height:330px}
+.tip{position:absolute;pointer-events:none;background:#0B1724;border:1px solid var(--line-strong);border-radius:8px;padding:6px 9px;font:400 .76rem/1.35 var(--f-mono);white-space:nowrap}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+.gauge{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:rgba(4,7,13,.45)}
+.gauge small{display:block;font:500 .7rem/1 var(--f-mono);color:var(--muted);letter-spacing:.06em}
+.gauge b{display:block;font:700 1.35rem/1.2 var(--f-display);margin-top:6px}
+.gauge span{font:400 .76rem/1.3 var(--f-mono);color:var(--muted)}
+.ok{color:var(--green)} .bad{color:var(--red)} .warn{color:var(--amber)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font:400 .76rem/1 var(--f-mono);color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:-1px}
+input[type=range]{width:100%;accent-color:var(--holo)}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+
+/* briefing */
+.brief h3{font:600 1.1rem/1.25 var(--f-display);margin:0 0 8px}
+.brief p{margin:0 0 12px;color:var(--ink)}
+.brief h4{font:500 .72rem/1 var(--f-mono);color:var(--gold);letter-spacing:.1em;margin:16px 0 8px}
+.brief ul{margin:0;padding-left:18px;color:var(--muted);display:grid;gap:6px;font-size:.92rem}
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font:500 .72rem/1 var(--f-mono);border:1px solid var(--line-strong);border-radius:6px;padding:5px 7px;color:var(--holo)}
+.brief .foot{border-top:1px solid var(--line);margin-top:16px;padding-top:12px;font-size:.86rem;color:var(--muted)}
+
+/* bank deck */
+.deck{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border-bottom:1px solid var(--line)}
+.stat{padding:12px 16px;border-left:1px solid var(--line);min-width:0}
+.stat:first-child{border-left:0}
+.stat b{display:block;font:700 1.6rem/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{font:400 .74rem/1.3 var(--f-mono);color:var(--muted)}
+.log{list-style:none;margin:0;padding:6px 0;max-height:300px;overflow:auto}
+.log li{display:grid;grid-template-columns:70px 70px 1fr auto;gap:10px;padding:8px 16px;border-bottom:1px solid rgba(94,231,255,.07);font-size:.88rem;align-items:baseline}
+.log time,.log .ch{font:400 .76rem/1.3 var(--f-mono);color:var(--muted)}
+.log .amt{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.pill{font:600 .68rem/1 var(--f-mono);padding:3px 7px;border-radius:5px;letter-spacing:.06em}
+.pill.ok{background:rgba(71,240,160,.12);color:var(--green)}
+.pill.bad{background:rgba(255,77,94,.12);color:var(--red)}
+.empty{padding:18px 16px;color:var(--muted)}
+.alerts{list-style:none;margin:0;padding:6px 0;max-height:350px;overflow:auto}
+.alerts li{padding:10px 16px;border-bottom:1px solid rgba(94,231,255,.07);display:grid;gap:3px}
+.alerts b{font:600 .95rem/1.3 var(--f-display);letter-spacing:.02em}
+.alerts p{margin:0;color:var(--muted);font-size:.86rem}
+.sev{font:600 .66rem/1 var(--f-mono);letter-spacing:.08em}
+.sev.high{color:var(--red)} .sev.med{color:var(--amber)}
+
+/* toast */
+.toasts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));display:grid;gap:8px;z-index:20;width:min(340px,calc(100vw - 32px))}
+.toast{border:1px solid var(--red);background:rgba(20,6,9,.95);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 24px -8px rgba(255,77,94,.6);animation:in .3s ease-out}
+.toast small{font:600 .68rem/1 var(--f-mono);color:var(--red);letter-spacing:.1em}
+.toast div{font:600 .95rem/1.35 var(--f-display);margin-top:4px}
+@keyframes in{from{transform:translateY(-8px);opacity:0}}
+
+@media (max-width:1180px){.main{grid-template-columns:minmax(280px,360px) minmax(0,1fr)}.brief-panel{grid-column:1/-1}}
+@media (max-width:820px){.main,.deck{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.stat:nth-child(4){border-left:0}
+  .log li{grid-template-columns:62px 1fr auto}.log .ch{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <div class="reactor-mini" aria-hidden="true"></div>
+      <div>
+        <h1>BIOMETRIC CARD LAB</h1>
+        <p>A payment card that only works for its owner. Built by Vineet Parikh, University of Waterloo.</p>
+      </div>
+    </div>
+    <div class="bar-right">
+      <span class="chip"><i></i>Bank server online</span>
+      <span class="chip" id="clockChip">Clock: now</span>
+      <a class="btn" href="https://github.com/Vineet1100/biometric-card-fraud-analytics" target="_blank" rel="noopener">View code on GitHub</a>
+    </div>
+  </header>
+
+  <div class="nova" role="status" aria-live="polite"><b>NOVA &gt;</b><span id="nova">Systems online. Start with mission 01: hold the glowing sensor to unlock the card.</span></div>
+
+  <div class="main">
+    <!-- card + sensor -->
+    <section class="panel" aria-label="The card">
+      <div class="panel-h"><h2>The card</h2><span id="cvvTimer" class="num">CVV changes in 2:00</span></div>
+      <div class="stage">
+        <div class="card" id="card">
+          <div class="c-row"><div><div class="c-brand">NOVA BANK</div><div class="c-tier">BIOMETRIC</div></div>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5EE7FF" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 8.5a5 5 0 0 1 0 7"/><path d="M11.5 6a9 9 0 0 1 0 12"/><path d="M15 3.5a13 13 0 0 1 0 17"/></svg></div>
+          <div class="c-row" style="justify-content:flex-start"><div class="c-chip"></div><span class="c-state" id="cState">Chip locked</span></div>
+          <div class="c-pan">4111 1111 1111 1111</div>
+          <div class="c-row" style="align-items:flex-end">
+            <div class="c-meta">Cardholder<b>ALEX MORGAN</b>Valid thru<b>12/29</b></div>
+            <div class="eink" aria-label="Dynamic CVV"><small>Dynamic CVV</small><b id="cvv">---</b><i><span id="cvvBar" style="width:100%"></span></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="sensor pad">
+        <button class="reactor" id="reactor" aria-label="Fingerprint sensor. Press and hold to scan.">
+          <svg viewBox="0 0 180 180" aria-hidden="true">
+            <circle cx="90" cy="90" r="84" fill="none" stroke="rgba(94,231,255,.18)" stroke-width="2"/>
+            <g class="spin"><circle cx="90" cy="90" r="76" fill="none" stroke="rgba(94,231,255,.5)" stroke-width="2" stroke-dasharray="10 14"/></g>
+            <circle id="ringTrack" cx="90" cy="90" r="66" fill="none" stroke="rgba(94,231,255,.12)" stroke-width="8"/>
+            <circle id="ring" cx="90" cy="90" r="66" fill="none" stroke="#5EE7FF" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="0 415" transform="rotate(-90 90 90)"/>
+          </svg>
+          <span class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4a7 7 0 0 0-7 7v2"/><path d="M19 13v-2a7 7 0 0 0-3.5-6.06"/><path d="M12 7.5a3.5 3.5 0 0 0-3.5 3.5v3a6 6 0 0 0 1.2 3.6"/><path d="M15.5 11v2.5a9 9 0 0 1-.9 4"/><path d="M12 11v3.5a8 8 0 0 0 1.5 4.7"/></svg></span>
+        </button>
+        <div class="sensor-read"><b id="sensorBig">LOCKED</b><span id="sensorSmall">Press and hold the sensor to scan</span></div>
+        <div class="finger"><span>Finger on sensor:</span>
+          <div class="seg" role="group" aria-label="Whose finger">
+            <button id="fOwner" aria-pressed="true">Owner</button><button id="fThief" aria-pressed="false">Stranger</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- missions -->
+    <section class="panel" aria-label="Missions">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="t1" aria-selected="true" data-m="1"><small>MISSION 01</small><b>Pay in store</b></button>
+        <button class="tab" role="tab" id="t2" aria-selected="false" data-m="2"><small>MISSION 02</small><b>Pay online</b></button>
+        <button class="tab" role="tab" id="t3" aria-selected="false" data-m="3"><small>MISSION 03</small><b>Attack the card</b></button>
+        <button class="tab" role="tab" id="t4" aria-selected="false" data-m="4"><small>MISSION 04</small><b>Fraud AI</b></button>
+      </div>
+
+      <div class="mission" id="m1" role="tabpanel">
+        <h3>Tap the card at a store</h3>
+        <p class="lead">First tap without scanning: it gets declined. Then hold the sensor, and tap again before the ring runs out.</p>
+        <div class="row">
+          <div class="field" style="flex:1 1 160px"><label for="posAmt">AMOUNT (CAD)</label><input class="input num" id="posAmt" type="number" min="0.01" step="0.01" value="42.50"></div>
+          <button class="btn gold" id="tapBtn">Tap card at terminal</button>
+        </div>
+        <div class="lcd" id="lcd"><div class="big">TAP CARD</div><div>Corner Market terminal ready</div></div>
+      </div>
+
+      <div class="mission" id="m2" role="tabpanel" hidden>
+        <h3>Buy something online</h3>
+        <p class="lead">Read the code off the card, pay, then approve the purchase with your fingerprint. The code changes every 2 minutes, so an old one fails.</p>
+        <div class="row">
+          <div class="field" style="flex:2 1 200px"><label for="coPan">CARD NUMBER</label><input class="input num" id="coPan" value="4111 1111 1111 1111" autocomplete="off"></div>
+          <div class="field" style="flex:1 1 90px"><label for="coCvv">CVV</label><input class="input num" id="coCvv" maxlength="3" inputmode="numeric" placeholder="123" autocomplete="off"></div>
+          <div class="field" style="flex:1 1 110px"><label for="coAmt">TOTAL (CAD)</label><input class="input num" id="coAmt" type="number" min="0.01" step="0.01" value="249.99"></div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="readCvv">Read CVV from card</button>
+          <button class="btn gold" id="payBtn">Pay at Northwind Electronics</button>
+        </div>
+        <div id="pushBox"></div>
+        <div class="lcd" id="shopLcd" hidden></div>
+      </div>
+
+      <div class="mission" id="m3" role="tabpanel" hidden>
+        <h3>Try to break in</h3>
+        <p class="lead">These are three ways criminals attack cards. Run each one and watch the bank block it and raise an alert below.</p>
+        <div class="split">
+          <div class="attack"><h4>Replay stolen card data</h4><p>Card details leaked in a breach a few minutes ago. The CVV has already changed.</p><button class="btn red" id="atkReplay">Run attack</button></div>
+          <div class="attack"><h4>Card testing</h4><p>A thief taps a stolen card again and again, hoping one goes through.</p><button class="btn red" id="atkTest">Run attack</button></div>
+          <div class="attack"><h4>Guess the CVV</h4><p>A bot guesses codes. There are only 1,000, so the bank cuts it off after 3 misses.</p><button class="btn red" id="atkGuess">Run attack</button></div>
+        </div>
+        <div class="lcd" id="atkLcd" hidden></div>
+      </div>
+
+      <div class="mission" id="m4" role="tabpanel" hidden>
+        <h3>Ask the fraud AI</h3>
+        <p class="lead">The grey dots are the owner's last 400 purchases. Set up a new purchase and the model decides whether it looks like them.</p>
+        <div class="chart-wrap"><canvas id="chart" aria-label="Spending profile: amount by hour of day"></canvas><div class="tip" id="tip" hidden></div></div>
+        <div class="legend"><span><i style="background:rgba(94,231,255,.45);border-radius:50%"></i>Past purchases</span><span><i style="background:var(--green);border-radius:50%"></i>Approved today</span><span><i style="background:var(--red)"></i>Declined today</span><span><i style="background:var(--gold);transform:rotate(45deg)"></i>Purchase being tested</span></div>
+        <div class="split" style="margin-top:14px">
+          <div class="field"><label for="aiAmt">AMOUNT: <span id="aiAmtV" class="num">$42.50</span></label><input type="range" id="aiAmt" min="0" max="1000" value="0"></div>
+          <div class="field"><label for="aiHour">TIME OF DAY: <span id="aiHourV" class="num">12:00</span></label><input type="range" id="aiHour" min="0" max="23" value="12"></div>
+          <div class="field"><label>CHANNEL</label><div class="seg" role="group" aria-label="Channel"><button id="chStore" aria-pressed="true">In store</button><button id="chOnline" aria-pressed="false">Online</button></div></div>
+        </div>
+        <div class="presets" style="margin-top:12px">
+          <button class="btn" data-preset="42.5,12,0">Lunch at noon</button>
+          <button class="btn" data-preset="42.5,3,0">Same lunch at 3 AM</button>
+          <button class="btn" data-preset="1200,14,1">$1,200 online</button>
+          <button class="btn" data-preset="85,20,1">Evening online order</button>
+        </div>
+        <div class="verdict">
+          <div class="gauge"><small>VERDICT</small><b id="vOut">-</b><span id="vWhy"></span></div>
+          <div class="gauge"><small>AMOUNT CHECK (Z-SCORE)</small><b id="vZ" class="num">-</b><span>flags above 3.5</span></div>
+          <div class="gauge"><small>PATTERN CHECK (LOF)</small><b id="vL" class="num">-</b><span id="vLt">flags above -</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- briefing -->
+    <aside class="panel brief-panel" aria-label="Briefing">
+      <div class="panel-h"><h2>Briefing</h2><span>plain English</span></div>
+      <div class="pad brief" id="brief"></div>
+    </aside>
+  </div>
+
+  <!-- bank deck -->
+  <div class="deck">
+    <section class="panel" aria-label="Bank server">
+      <div class="panel-h"><h2>Bank server</h2><span>every attempt, live</span></div>
+      <div class="stats" style="margin-top:10px">
+        <div class="stat"><b id="sAll">0</b><span>Attempts</span></div>
+        <div class="stat"><b id="sOk" class="ok">0</b><span>Approved</span></div>
+        <div class="stat"><b id="sBlk" class="bad">0</b><span>Fraud blocked</span></div>
+        <div class="stat"><b id="sAl" class="warn">0</b><span>Alerts</span></div>
+        <div class="stat"><b id="sVol" class="num">$0</b><span>Approved volume</span></div>
+      </div>
+      <ul class="log" id="log"><li class="empty" style="display:block">No payments yet. Run a mission to fill the log.</li></ul>
+    </section>
+    <section class="panel" aria-label="Fraud alerts">
+      <div class="panel-h"><h2>Fraud alerts</h2><span>pattern monitor</span></div>
+      <ul class="alerts" id="alerts"><li class="empty">Quiet so far. Mission 03 will change that.</li></ul>
+    </section>
+  </div>
+</div>
+<div class="toasts" id="toasts" aria-live="assertive"></div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => "$" + n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const UNLOCK_MS = 15000, STEP_S = 120, PUSH_MS = 60000, BURST_MS = 5 * 60000;
+
+  const S = {
+    unlockedUntil: 0, finger: "owner", bioFails: 0, bioLockUntil: 0,
+    cvvFails: 0, onlineBlockedUntil: 0, usedSteps: new Set(),
+    ledger: [], alerts: [], alertKeys: new Set(), pending: null, mission: 1,
+  };
+
+  // NOVA voice
+  let typing;
+  function say(text) {
+    const el = $("nova");
+    clearInterval(typing);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { el.textContent = text; return; }
+    let i = 0; el.textContent = "";
+    typing = setInterval(() => { el.textContent = text.slice(0, ++i); if (i >= text.length) clearInterval(typing); }, 14);
+  }
+  function toast(text) {
+    const t = document.createElement("div");
+    t.className = "toast"; t.innerHTML = "<small>FRAUD ALERT</small><div></div>";
+    t.querySelector("div").textContent = text;
+    $("toasts").prepend(t);
+    setTimeout(() => t.remove(), 5200);
+  }
+
+  // TOTP (RFC 6238): HMAC-SHA1 of the time step, truncated to 3 digits
+  const secret = crypto.getRandomValues(new Uint8Array(20));
+  const codeCache = new Map();
+  let hmacKey = null;
+  const subtle = window.crypto && crypto.subtle;
+  const keyReady = subtle
+    ? subtle.importKey("raw", secret, { name: "HMAC", hash: "SHA-1" }, false, ["sign"]).then((k) => (hmacKey = k)).catch(() => null)
+    : Promise.resolve(null);
+  async function codeAt(step) {
+    if (codeCache.has(step)) return codeCache.get(step);
+    await keyReady;
+    let code;
+    if (hmacKey) {
+      const msg = new ArrayBuffer(8); new DataView(msg).setUint32(4, step);
+      const h = new Uint8Array(await subtle.sign("HMAC", hmacKey, msg));
+      const o = h[19] & 15;
+      const bin = ((h[o] & 127) << 24) | (h[o + 1] << 16) | (h[o + 2] << 8) | h[o + 3];
+      code = String(bin % 1000).padStart(3, "0");
+    } else {
+      let x = 2166136261 ^ step; for (const b of secret) x = Math.imul(x ^ b, 16777619);
+      code = String((x >>> 0) % 1000).padStart(3, "0");
+    }
+    codeCache.set(step, code);
+    return code;
+  }
+  const stepNow = () => Math.floor(Date.now() / 1000 / STEP_S);
+
+  // spending history and fraud models (same methods as app.py)
+  function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const rand = rng(42);
+  const gauss = () => { let u = 0, v = 0; while (!u) u = rand(); while (!v) v = rand(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const HISTORY = Array.from({ length: 400 }, () => {
+    const online = rand() < 0.4;
+    const amount = online ? Math.exp(Math.log(60) + 0.6 * gauss()) : Math.exp(Math.log(30) + 0.5 * gauss());
+    const hour = clamp(Math.round(online ? 17 + 3.5 * gauss() : 14 + 3 * gauss()), 7, 23);
+    return { amount: Math.round(amount * 100) / 100, hour, online };
+  });
+
+  // robust z-score (median / MAD on log amounts), per channel
+  const median = (a) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+  const ROBUST = {};
+  for (const online of [true, false]) {
+    const logs = HISTORY.filter((h) => h.online === online).map((h) => Math.log1p(h.amount));
+    const med = median(logs), mad = median(logs.map((x) => Math.abs(x - med)));
+    ROBUST[online] = { med, mad };
+  }
+  const robustZ = (amount, online) => { const r = ROBUST[online]; return (0.6745 * (Math.log1p(amount) - r.med)) / r.mad; };
+
+  // Local Outlier Factor (k = 35) on standardized [log amount, hour, online]
+  const K = 35;
+  const raw = HISTORY.map((h) => [Math.log1p(h.amount), h.hour, h.online ? 1 : 0]);
+  const mean = [0, 1, 2].map((j) => raw.reduce((s, r) => s + r[j], 0) / raw.length);
+  const sd = [0, 1, 2].map((j) => Math.sqrt(raw.reduce((s, r) => s + (r[j] - mean[j]) ** 2, 0) / raw.length));
+  const scale = (r) => r.map((v, j) => (v - mean[j]) / sd[j]);
+  const X = raw.map(scale);
+  const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
+  function neighbours(p, skip) {
+    const d = [];
+    for (let i = 0; i < X.length; i++) if (i !== skip) d.push([dist(p, X[i]), i]);
+    d.sort((a, b) => a[0] - b[0]);
+    return d.slice(0, K);
+  }
+  const NB = X.map((p, i) => neighbours(p, i));
+  const KDIST = NB.map((n) => n[K - 1][0]);
+  const lrdOf = (nb) => 1 / (nb.reduce((s, [d, j]) => s + Math.max(KDIST[j], d), 0) / K + 1e-10);
+  const LRD = NB.map(lrdOf);
+  const lofOf = (nb, lrd) => nb.reduce((s, [, j]) => s + LRD[j], 0) / K / lrd;
+  const trainLof = NB.map((nb, i) => lofOf(nb, LRD[i])).sort((a, b) => a - b);
+  const LOF_LIMIT = trainLof[Math.floor(0.99 * (trainLof.length - 1))]; // contamination 1%
+  function lofScore(amount, hour, online) {
+    const p = scale([Math.log1p(amount), hour, online ? 1 : 0]);
+    const nb = neighbours(p, -1);
+    return lofOf(nb, lrdOf(nb));
+  }
+  function judge(amount, hour, online) {
+    const z = robustZ(amount, online), lof = lofScore(amount, hour, online);
+    return { z, lof, outlier: z > 3.5, pattern: lof > LOF_LIMIT };
+  }
+
+  // bank
+  function record(channel, amount, ok, reason, block = false) {
+    const hour = new Date().getHours();
+    S.ledger.push({ t: Date.now(), channel, amount, ok, reason, block, hour });
+    runMonitor(); renderBank(); drawChart();
+    return S.ledger[S.ledger.length - 1];
+  }
+  function runMonitor() {
+    const found = [];
+    for (const ch of ["In-Store", "Online"]) {
+      const blocks = S.ledger.map((e, i) => ({ ...e, i })).filter((e) => e.block && e.channel === ch);
+      blocks.forEach((e, n) => {
+        const inWindow = blocks.slice(0, n + 1).filter((x) => e.t - x.t <= BURST_MS).length;
+        if (inWindow === 3) found.push({ key: "burst-" + e.i, sev: "high", title: `3 blocked ${ch.toLowerCase()} attempts in 5 minutes`, text: "Repeated failures in a short time look like someone testing a stolen card." });
+      });
+    }
+    S.ledger.forEach((e, i) => {
+      if (/expired/.test(e.reason)) found.push({ key: "leak-" + i, sev: "high", title: `Stolen card data used online (${fmt(e.amount)})`, text: "Someone entered an old CVV, so the card details were probably leaked." });
+      if (/denied/.test(e.reason)) found.push({ key: "deny-" + i, sev: "high", title: `Purchase rejected by the owner (${fmt(e.amount)})`, text: "The CVV was right but the owner said it wasn't them. Their current code may have been phished." });
+      if (e.ok) {
+        const j = judge(e.amount, e.hour, e.channel === "Online");
+        if (j.outlier) found.push({ key: "z-" + i, sev: "med", title: `Unusually large ${e.channel.toLowerCase()} purchase (${fmt(e.amount)})`, text: `Robust z-score ${j.z.toFixed(1)}, far above the owner's normal range.` });
+        else if (j.pattern) found.push({ key: "lof-" + i, sev: "med", title: `Unusual purchase pattern (${fmt(e.amount)} at ${e.hour}:00)`, text: "The model rates this amount, time and channel as unlike the owner's history." });
+      }
+    });
+    for (const a of found) if (!S.alertKeys.has(a.key)) {
+      S.alertKeys.add(a.key); a.t = Date.now(); S.alerts.unshift(a); toast(a.title);
+    }
+  }
+
+  // fingerprint
+  const reactor = $("reactor"), RING = 415;
+  let hold = null;
+  function startScan(onDone) {
+    if (hold) return;
+    const t0 = performance.now();
+    reactor.classList.add("scanning");
+    hold = { onDone, raf: 0 };
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / 1100);
+      $("ring").setAttribute("stroke-dasharray", `${p * RING} ${RING}`);
+      $("ring").setAttribute("stroke", "#F2B63D");
+      $("sensorBig").textContent = "SCANNING"; $("sensorSmall").textContent = "Keep holding";
+      if (p >= 1) { const cb = hold.onDone; endScan(); cb(S.finger === "owner"); return; }
+      hold.raf = requestAnimationFrame(step);
+    };
+    hold.raf = requestAnimationFrame(step);
+  }
+  function endScan(cancelled) {
+    if (!hold) return;
+    cancelAnimationFrame(hold.raf); hold = null; reactor.classList.remove("scanning");
+    if (cancelled) say("Scan cancelled. Hold your finger on the sensor until the ring fills.");
+    tick();
+  }
+  function cardScan(ok) {
+    const now = Date.now();
+    if (now < S.bioLockUntil) { say(`Sensor is locked after 3 failed scans. Try again in ${Math.ceil((S.bioLockUntil - now) / 1000)} seconds.`); return; }
+    if (ok) {
+      S.unlockedUntil = Date.now() + UNLOCK_MS; S.bioFails = 0;
+      say("Fingerprint matched on the card. The chip is live for 15 seconds. Tap it at the terminal.");
+    } else {
+      S.bioFails++;
+      if (S.bioFails >= 3) { S.bioLockUntil = now + 30000; S.bioFails = 0; say("Third wrong finger. The sensor locks for 30 seconds, so a thief can't keep trying."); }
+      else say(`Fingerprint rejected. That isn't the owner. ${3 - S.bioFails} tries left before lockout.`);
+    }
+    tick();
+  }
+  function bindHold(el, handler) {
+    el.addEventListener("pointerdown", (e) => { e.preventDefault(); el.setPointerCapture?.(e.pointerId); startScan(handler); });
+    ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => el.addEventListener(ev, () => endScan(true)));
+    el.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); startScan(handler); } });
+    el.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") endScan(true); });
+  }
+  bindHold(reactor, cardScan);
+  const setFinger = (f) => { S.finger = f; $("fOwner").setAttribute("aria-pressed", f === "owner"); $("fThief").setAttribute("aria-pressed", f !== "owner");
+    say(f === "owner" ? "Owner's finger selected." : "Stranger's finger selected. Try unlocking the card now."); };
+  $("fOwner").onclick = () => setFinger("owner");
+  $("fThief").onclick = () => setFinger("thief");
+
+  // mission 01: in store
+  function lcd(el, kind, big, small) { el.hidden = false; el.className = "lcd" + (kind ? " " + kind : ""); el.innerHTML = '<div class="big"></div><div></div>'; el.children[0].textContent = big; el.children[1].textContent = small; }
+  function tapCard(amount, quiet) {
+    if (!(amount > 0)) { say("Enter an amount first."); return; }
+    const left = S.unlockedUntil - Date.now();
+    if (left <= 0) {
+      record("In-Store", amount, false, "Chip locked: fingerprint required", true);
+      lcd($("lcd"), "bad", "DECLINED", "Card chip locked. Fingerprint required.");
+      if (!quiet) say("Declined. Without the owner's fingerprint the chip won't pay, so a stolen card is useless here.");
+    } else {
+      record("In-Store", amount, true, `Fingerprint verified, ${Math.ceil(left / 1000)}s left`);
+      lcd($("lcd"), "", `APPROVED ${fmt(amount)}`, "Fingerprint verified on the card.");
+      say("Approved. The fingerprint never left the card. The terminal only saw a working chip.");
+      markDone(1);
+    }
+  }
+  $("tapBtn").onclick = () => tapCard(parseFloat($("posAmt").value));
+
+  // mission 02: online + push
+  async function payOnline(cvv, amount, out, quiet) {
+    if (S.pending) { say("A purchase is already waiting for approval."); return null; }
+    const now = Date.now();
+    if (now < S.onlineBlockedUntil) {
+      const e = record("Online", amount, false, "Online payments blocked after 3 wrong CVVs", true);
+      lcd(out, "bad", "BLOCKED", `Too many wrong codes. Online payments paused for ${Math.ceil((S.onlineBlockedUntil - now) / 1000)}s.`);
+      return e;
+    }
+    if (!/^\d{3}$/.test(cvv)) { lcd(out, "bad", "CHECK CVV", "The CVV is 3 digits."); return null; }
+    const step = stepNow();
+    if (cvv === (await codeAt(step))) {
+      if (S.usedSteps.has(step)) {
+        S.cvvFails++;
+        const e = record("Online", amount, false, "CVV already used (replay blocked)", true);
+        lcd(out, "bad", "DECLINED", "That code was already used. Each code works once.");
+        if (!quiet) say("Declined. A code that already went through can't be reused.");
+        return e;
+      }
+      S.usedSteps.add(step); S.cvvFails = 0;
+      S.pending = { amount, out, until: Date.now() + PUSH_MS };
+      showPush();
+      lcd(out, "wait", "WAITING", "CVV is valid. Approve the purchase to finish.");
+      say("The code checks out. Now the bank asks the owner to approve this exact purchase.");
+      return null;
+    }
+    S.cvvFails++;
+    let stale = false;
+    for (let k = 1; k <= 4; k++) if (cvv === (await codeAt(step - k))) stale = true;
+    let reason = stale ? "CVV expired: matches an earlier window (likely leaked data)" : "Incorrect CVV";
+    if (S.cvvFails >= 3) { S.onlineBlockedUntil = Date.now() + 60000; S.cvvFails = 0; reason += "; online payments paused 60s"; }
+    const e = record("Online", amount, false, reason, true);
+    lcd(out, "bad", "DECLINED", reason);
+    if (!quiet) say(stale ? "Declined. That code expired, so whoever has it is using stolen data." : "Declined. Wrong code.");
+    return e;
+  }
+  function showPush() {
+    const p = S.pending, box = $("pushBox");
+    box.innerHTML = `<div class="push" role="dialog" aria-label="Approve purchase"><div class="who">NOVA BANK: APPROVE THIS PURCHASE?</div>
+      <div class="amt num">${fmt(p.amount)}</div><p>Northwind Electronics, card ending 1111. <span id="pushLeft" class="num"></span></p>
+      <div class="row"><button class="btn" id="pushDeny">Deny</button><button class="btn gold hold" id="pushOk"><span class="fill" id="pushFill"></span>Hold to approve with fingerprint</button></div></div>`;
+    $("pushDeny").onclick = () => finishPush("deny");
+    const okBtn = $("pushOk");
+    let t0 = 0, raf = 0;
+    const stop = () => { cancelAnimationFrame(raf); $("pushFill") && ($("pushFill").style.width = "0"); };
+    const go = (e) => { e?.preventDefault?.(); if (raf) return; t0 = performance.now();
+      const loop = (now) => { const p2 = Math.min(1, (now - t0) / 900); $("pushFill").style.width = p2 * 100 + "%";
+        if (p2 >= 1) { raf = 0; finishPush(S.finger === "owner" ? "approve" : "badfinger"); return; } raf = requestAnimationFrame(loop); };
+      raf = requestAnimationFrame(loop); };
+    okBtn.addEventListener("pointerdown", go);
+    ["pointerup", "pointerleave", "pointercancel"].forEach((ev) => okBtn.addEventListener(ev, () => { stop(); raf = 0; }));
+    okBtn.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) go(e); });
+    okBtn.addEventListener("keyup", () => { stop(); raf = 0; });
+  }
+  function finishPush(decision) {
+    const p = S.pending; if (!p) return;
+    S.pending = null; $("pushBox").innerHTML = "";
+    if (decision === "approve") {
+      record("Online", p.amount, true, "CVV valid, approved with fingerprint");
+      lcd(p.out, "", `APPROVED ${fmt(p.amount)}`, "Code valid and approved by the owner.");
+      say("Approved. Two locks opened: the live code and the owner's fingerprint."); markDone(2);
+    } else if (decision === "badfinger") {
+      record("Online", p.amount, false, "Approval failed fingerprint check", true);
+      lcd(p.out, "bad", "DECLINED", "Approval needs the owner's fingerprint.");
+      say("Declined. Someone tapped approve, but it wasn't the owner's finger.");
+    } else if (decision === "timeout") {
+      record("Online", p.amount, false, "No answer to approval request");
+      lcd(p.out, "bad", "DECLINED", "No answer within 60 seconds.");
+    } else {
+      record("Online", p.amount, false, "Owner denied the purchase", true);
+      lcd(p.out, "bad", "DECLINED", "The owner didn't recognise this purchase.");
+      say("Denied. The bank logs it as fraud. A thief with the code still couldn't get past the owner.");
+    }
+  }
+  $("readCvv").onclick = async () => { $("coCvv").value = await codeAt(stepNow()); say("Code copied from the card's screen. Pay before it changes."); };
+  $("payBtn").onclick = () => {
+    const pan = $("coPan").value.replace(/\D/g, "");
+    if (pan !== "4111111111111111") { lcd($("shopLcd"), "bad", "DECLINED", "Card number not recognised."); return; }
+    payOnline($("coCvv").value.trim(), parseFloat($("coAmt").value), $("shopLcd"));
+  };
+
+  // mission 03: attacks
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  $("atkReplay").onclick = async () => {
+    const old = await codeAt(stepNow() - 2);
+    say(`Attacker replays leaked details with CVV ${old}, captured 4 minutes ago...`);
+    await sleep(900);
+    await payOnline(old, 249.99, $("atkLcd"), true);
+    say("Blocked. The stolen code expired, and the bank flagged the card as leaked.");
+    markDone(3);
+  };
+  $("atkTest").onclick = async () => {
+    S.unlockedUntil = 0; tick();
+    say("A thief has the card but not the owner's finger. Tapping three times...");
+    for (let i = 0; i < 3; i++) { await sleep(500); tapCard(9.99 + i, true); }
+    lcd($("atkLcd"), "bad", "3 x DECLINED", "Every tap failed. The pattern triggered an alert.");
+    say("All three taps declined, and the monitor spotted the burst."); markDone(3);
+  };
+  $("atkGuess").onclick = async () => {
+    const real = await codeAt(stepNow());
+    say("A bot starts guessing codes...");
+    for (let i = 0; i < 3; i++) {
+      let g; do { g = String(Math.floor(Math.random() * 1000)).padStart(3, "0"); } while (g === real);
+      await sleep(450); await payOnline(g, 19.99, $("atkLcd"), true);
+    }
+    say("Three misses and online payments pause for a minute. Guessing 1,000 codes is now impossible."); markDone(3);
+  };
+
+  // mission 04: fraud AI
+  const ai = { amount: 42.5, hour: 12, online: false };
+  const sliderToAmt = (v) => Math.round(5 * Math.pow(2000 / 5, v / 1000) * 100) / 100;
+  const amtToSlider = (a) => Math.round((1000 * Math.log(a / 5)) / Math.log(2000 / 5));
+  function setAI(a, h, on) {
+    ai.amount = a; ai.hour = h; ai.online = on;
+    $("aiAmt").value = amtToSlider(a); $("aiHour").value = h;
+    $("chStore").setAttribute("aria-pressed", !on); $("chOnline").setAttribute("aria-pressed", on);
+    updateAI();
+  }
+  function updateAI() {
+    $("aiAmtV").textContent = fmt(ai.amount);
+    $("aiHourV").textContent = String(ai.hour).padStart(2, "0") + ":00";
+    const j = judge(ai.amount, ai.hour, ai.online);
+    $("vZ").textContent = j.z.toFixed(2); $("vZ").className = "num " + (j.outlier ? "bad" : "ok");
+    $("vL").textContent = j.lof.toFixed(2); $("vL").className = "num " + (j.pattern ? "bad" : "ok");
+    $("vLt").textContent = "flags above " + LOF_LIMIT.toFixed(2);
+    const flagged = j.outlier || j.pattern;
+    $("vOut").textContent = flagged ? "FLAGGED" : "LOOKS NORMAL";
+    $("vOut").className = flagged ? "bad" : "ok";
+    $("vWhy").textContent = j.outlier ? "Amount is far outside normal spending" : j.pattern ? "Amount, time and channel don't match the owner" : "Fits the owner's usual spending";
+    drawChart();
+  }
+  $("aiAmt").oninput = (e) => { ai.amount = sliderToAmt(+e.target.value); updateAI(); };
+  $("aiHour").oninput = (e) => { ai.hour = +e.target.value; updateAI(); };
+  $("chStore").onclick = () => setAI(ai.amount, ai.hour, false);
+  $("chOnline").onclick = () => setAI(ai.amount, ai.hour, true);
+  document.querySelectorAll("[data-preset]").forEach((b) => b.onclick = () => {
+    const [a, h, on] = b.dataset.preset.split(",").map(Number); setAI(a, h, !!on);
+    const j = judge(a, h, !!on);
+    say(j.outlier || j.pattern ? "Flagged. That purchase doesn't look like the owner." : "Looks normal. That's how the owner usually spends.");
+    if (j.pattern && !j.outlier && h < 6) markDone(4);
+  });
+
+  const cv = $("chart"), ctx = cv.getContext("2d");
+  let plotPts = [];
+  function drawChart() {
+    if ($("m4").hidden) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const W = cv.clientWidth, H = cv.clientHeight;
+    if (!W) return;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    const L = 52, R = 14, T = 14, B = 34;
+    const x = (h) => L + ((h + 0.5) / 24) * (W - L - R);
+    const lo = Math.log(4), hi = Math.log(2500);
+    const y = (a) => T + (1 - (Math.log(Math.max(4, Math.min(2500, a))) - lo) / (hi - lo)) * (H - T - B);
+    ctx.font = "11px 'JetBrains Mono', monospace"; ctx.textBaseline = "middle";
+    for (const v of [5, 10, 25, 50, 100, 250, 500, 1000, 2000]) {
+      ctx.strokeStyle = "rgba(94,231,255,.08)"; ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(W - R, y(v)); ctx.stroke();
+      ctx.fillStyle = "#80A4B4"; ctx.textAlign = "right"; ctx.fillText(v >= 1000 ? `$${v / 1000}k` : `$${v}`, L - 8, y(v));
+    }
+    ctx.textAlign = "center";
+    for (let h = 0; h <= 21; h += 3) ctx.fillText(String(h).padStart(2, "0") + ":00", x(h), H - 14);
+    ctx.fillStyle = "rgba(255,200,87,.05)"; ctx.fillRect(x(-0.5), T, x(6.5) - x(-0.5), H - T - B);
+    plotPts = [];
+    for (const p of HISTORY) {
+      const px = x(p.hour) + ((p.amount * 97) % 1 - 0.5) * 14, py = y(p.amount);
+      ctx.fillStyle = "rgba(94,231,255,.38)"; ctx.beginPath(); ctx.arc(px, py, 2.6, 0, 7); ctx.fill();
+      plotPts.push({ px, py, label: `Past ${p.online ? "online" : "in-store"}: ${fmt(p.amount)} at ${p.hour}:00` });
+    }
+    for (const e of S.ledger) {
+      const px = x(e.hour), py = y(e.amount);
+      if (e.ok) { ctx.fillStyle = "#47F0A0"; ctx.beginPath(); ctx.arc(px, py, 6, 0, 7); ctx.fill(); }
+      else { ctx.strokeStyle = "#FF4D5E"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(px - 5, py - 5); ctx.lineTo(px + 5, py + 5); ctx.moveTo(px + 5, py - 5); ctx.lineTo(px - 5, py + 5); ctx.stroke(); }
+      plotPts.push({ px, py, label: `Today ${e.channel}: ${fmt(e.amount)}, ${e.ok ? "approved" : "declined"}` });
+    }
+    const px = x(ai.hour), py = y(ai.amount);
+    ctx.strokeStyle = "rgba(242,182,61,.45)"; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(px, T); ctx.lineTo(px, H - B); ctx.moveTo(L, py); ctx.lineTo(W - R, py); ctx.stroke(); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(px, py); ctx.rotate(Math.PI / 4); ctx.fillStyle = "#F2B63D"; ctx.fillRect(-7, -7, 14, 14); ctx.restore();
+    ctx.strokeStyle = "#F2B63D"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(px, py, 15, 0, 7); ctx.stroke();
+    plotPts.push({ px, py, label: `Testing: ${fmt(ai.amount)} at ${ai.hour}:00, ${ai.online ? "online" : "in store"}` });
+  }
+  cv.addEventListener("mousemove", (e) => {
+    const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    let best = null, bd = 12;
+    for (const p of plotPts) { const d = Math.hypot(p.px - mx, p.py - my); if (d < bd) { bd = d; best = p; } }
+    const tip = $("tip");
+    if (!best) { tip.hidden = true; return; }
+    tip.hidden = false; tip.textContent = best.label;
+    tip.style.left = Math.min(best.px + 12, r.width - tip.offsetWidth - 6) + "px"; tip.style.top = Math.max(4, best.py - 34) + "px";
+  });
+  cv.addEventListener("mouseleave", () => ($("tip").hidden = true));
+  addEventListener("resize", drawChart);
+
+  // briefing
+  const BRIEF = {
+    1: { title: "Fingerprint unlock", body: "The card is switched off until its owner's fingerprint matches. The match happens on the card itself, so the fingerprint is never sent to the store or the bank. A stolen card can't be tapped.",
+      how: ["Match-on-card biometrics, simulated here and done with real Touch ID on a Mac", "15-second unlock window, checked with a clock that can't be changed", "3 wrong fingers lock the sensor for 30 seconds"], tech: ["Python", "Streamlit", "macOS Touch ID"] },
+    2: { title: "Live code + approval", body: "The 3-digit code on the back changes every 2 minutes. The bank works out the same code on its own, so a copied code goes stale fast. Then the owner approves the exact purchase with their fingerprint.",
+      how: ["TOTP codes (RFC 6238, HMAC-SHA1), the same maths as two-factor apps", "Each code works once (replay protection)", "Push approval shows merchant and amount, like a Duo push"], tech: ["pyotp", "HMAC", "Step-up auth"] },
+    3: { title: "Attack simulator", body: "Run the attacks a criminal would try. Every one is declined, logged, and turned into an alert for the bank's fraud team.",
+      how: ["Expired codes are recognised as leaked data", "3 blocked attempts in 5 minutes triggers a card-testing alert", "3 wrong codes pause online payments for a minute"], tech: ["pandas", "rolling windows", "groupby"] },
+    4: { title: "Fraud AI", body: "The bank learns how the owner normally spends from 400 past purchases. Then it flags anything that doesn't fit: a huge amount, or a normal amount at 3 AM when they never shop at night.",
+      how: ["Amount check: robust z-score using the median, so a few big purchases don't skew it", "Pattern check: Local Outlier Factor on amount, time and channel", "Caught 5 of 5 unusual test purchases, against 2 of 5 for Isolation Forest"], tech: ["NumPy", "scikit-learn", "Plotly"] },
+  };
+  function renderBrief() {
+    const b = BRIEF[S.mission];
+    $("brief").innerHTML = `<h3></h3><p></p><h4>UNDER THE HOOD</h4><ul></ul><h4>BUILT WITH</h4><div class="tags"></div>
+      <div class="foot">This page re-creates the Python app in your browser so it runs from a link. The real code, with Touch ID and macOS alerts, is on <a href="https://github.com/Vineet1100/biometric-card-fraud-analytics" target="_blank" rel="noopener">GitHub</a>.</div>`;
+    $("brief").querySelector("h3").textContent = b.title;
+    $("brief").querySelector("p").textContent = b.body;
+    const ul = $("brief").querySelector("ul"); b.how.forEach((t) => { const li = document.createElement("li"); li.textContent = t; ul.append(li); });
+    const tg = $("brief").querySelector(".tags"); b.tech.forEach((t) => { const s = document.createElement("span"); s.className = "tag"; s.textContent = t; tg.append(s); });
+  }
+
+  // tabs
+  function showMission(m) {
+    S.mission = m;
+    for (let i = 1; i <= 4; i++) { $("m" + i).hidden = i !== m; $("t" + i).setAttribute("aria-selected", i === m); }
+    renderBrief();
+    if (m === 4) requestAnimationFrame(updateAI);
+  }
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => showMission(+t.dataset.m));
+  function markDone(m) {
+    const small = $("t" + m).querySelector("small");
+    if (!small.querySelector(".done")) small.insertAdjacentHTML("beforeend", ' <span class="done">COMPLETE</span>');
+  }
+
+  // bank deck
+  function renderBank() {
+    const L = S.ledger, ok = L.filter((e) => e.ok);
+    $("sAll").textContent = L.length; $("sOk").textContent = ok.length;
+    $("sBlk").textContent = L.filter((e) => e.block).length; $("sAl").textContent = S.alerts.length;
+    $("sVol").textContent = fmt(ok.reduce((s, e) => s + e.amount, 0));
+    const log = $("log"); log.innerHTML = "";
+    if (!L.length) log.innerHTML = '<li class="empty" style="display:block">No payments yet. Run a mission to fill the log.</li>';
+    [...L].reverse().forEach((e) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<time class="num"></time><span class="ch"></span><span></span><span class="amt"></span>`;
+      li.children[0].textContent = new Date(e.t).toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" });
+      li.children[1].textContent = e.channel;
+      li.children[2].innerHTML = `<span class="pill ${e.ok ? "ok" : "bad"}">${e.ok ? "APPROVED" : "DECLINED"}</span> `;
+      li.children[2].append(document.createTextNode(e.reason));
+      li.children[3].textContent = fmt(e.amount);
+      log.append(li);
+    });
+    const al = $("alerts"); al.innerHTML = "";
+    if (!S.alerts.length) al.innerHTML = '<li class="empty">Quiet so far. Mission 03 will change that.</li>';
+    S.alerts.forEach((a) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<span class="sev ${a.sev}">${a.sev === "high" ? "HIGH" : "MEDIUM"}</span><b></b><p></p>`;
+      li.querySelector("b").textContent = a.title; li.querySelector("p").textContent = a.text;
+      al.append(li);
+    });
+  }
+
+  // clock tick
+  let lastStep = -1;
+  async function tick() {
+    const now = Date.now();
+    const left = S.unlockedUntil - now, lock = S.bioLockUntil - now;
+    const on = left > 0, blocked = lock > 0;
+    $("card").classList.toggle("on", on); $("card").classList.toggle("blocked", blocked && !on);
+    reactor.classList.toggle("on", on); reactor.classList.toggle("blocked", blocked && !on);
+    $("cState").textContent = on ? "Chip active" : blocked ? "Sensor locked" : "Chip locked";
+    if (!hold) {
+      const ring = $("ring");
+      if (on) { ring.setAttribute("stroke", "#47F0A0"); ring.setAttribute("stroke-dasharray", `${(left / UNLOCK_MS) * RING} ${RING}`);
+        $("sensorBig").textContent = Math.ceil(left / 1000) + "s"; $("sensorSmall").textContent = "to tap the card"; }
+      else if (blocked) { ring.setAttribute("stroke", "#FF4D5E"); ring.setAttribute("stroke-dasharray", `${(lock / 30000) * RING} ${RING}`);
+        $("sensorBig").textContent = "LOCKED"; $("sensorSmall").textContent = `Too many wrong fingers. ${Math.ceil(lock / 1000)}s`; }
+      else { ring.setAttribute("stroke-dasharray", `0 ${RING}`); $("sensorBig").textContent = "LOCKED"; $("sensorSmall").textContent = "Press and hold the sensor to scan"; }
+    }
+    const step = stepNow(), sLeft = STEP_S - (Math.floor(now / 1000) % STEP_S);
+    if (step !== lastStep) { lastStep = step; $("cvv").textContent = await codeAt(step); }
+    $("cvvBar").style.width = (sLeft / STEP_S) * 100 + "%";
+    $("cvvTimer").textContent = `CVV changes in ${Math.floor(sLeft / 60)}:${String(sLeft % 60).padStart(2, "0")}`;
+    $("clockChip").textContent = new Date().toLocaleTimeString("en-CA", { hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+    if (S.pending) {
+      const pl = Math.ceil((S.pending.until - now) / 1000);
+      if (pl <= 0) finishPush("timeout"); else if ($("pushLeft")) $("pushLeft").textContent = `Expires in ${pl}s.`;
+    }
+  }
+  setInterval(tick, 250);
+
+  renderBrief(); renderBank(); tick();
+})();
+</script>
+</body>
+</html>
