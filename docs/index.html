@@ -19,6 +19,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{background:var(--void)}
 body{color:var(--ink);font:15px/1.5 var(--f-body);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
@@ -275,7 +276,12 @@ input[type=range]{width:100%;accent-color:var(--holo)}
           <span class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4a7 7 0 0 0-7 7v2"/><path d="M19 13v-2a7 7 0 0 0-3.5-6.06"/><path d="M12 7.5a3.5 3.5 0 0 0-3.5 3.5v3a6 6 0 0 0 1.2 3.6"/><path d="M15.5 11v2.5a9 9 0 0 1-.9 4"/><path d="M12 11v3.5a8 8 0 0 0 1.5 4.7"/></svg></span>
         </button>
         <div class="sensor-read"><b id="sensorBig">LOCKED</b><span id="sensorSmall">Press and hold the sensor to scan</span></div>
-        <div class="finger"><span>Finger on sensor:</span>
+        <div class="finger" id="modeRow" hidden><span>Sensor:</span>
+          <div class="seg" role="group" aria-label="Sensor">
+            <button id="mTouch" aria-pressed="true">Touch ID</button><button id="mSim" aria-pressed="false">Simulated</button>
+          </div>
+        </div>
+        <div class="finger" id="fingerRow"><span>Finger on sensor:</span>
           <div class="seg" role="group" aria-label="Whose finger">
             <button id="fOwner" aria-pressed="true">Owner</button><button id="fThief" aria-pressed="false">Stranger</button>
           </div>
@@ -554,15 +560,94 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     } else {
       S.bioFails++;
       if (S.bioFails >= 3) { S.bioLockUntil = now + 30000; S.bioFails = 0; say("Third wrong finger. The sensor locks for 30 seconds, so a thief can't keep trying."); }
-      else say(`Fingerprint rejected. That isn't the owner. ${3 - S.bioFails} tries left before lockout.`);
+      else say(TID.mode === "touch"
+        ? `Touch ID didn't confirm the owner. ${3 - S.bioFails} tries left before lockout.`
+        : `Fingerprint rejected. That isn't the owner. ${3 - S.bioFails} tries left before lockout.`);
     }
     tick();
   }
+  // real Touch ID through WebAuthn passkeys: macOS checks the fingerprint, the page only gets yes/no
+  const TID = { available: false, mode: "sim", credId: null, busy: false };
+  const randBytes = (n) => crypto.getRandomValues(new Uint8Array(n));
+  const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+  const fromB64 = (str) => Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
+  try { const saved = localStorage.getItem("cardlab-passkey"); if (saved) TID.credId = fromB64(saved); } catch {}
+  if (window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable) {
+    PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      .then((ok) => { TID.available = ok; if (ok) setMode("touch"); })
+      .catch(() => {});
+  }
+  async function touchId() {
+    try {
+      if (!TID.credId) {
+        // first scan enrols a passkey for this page; creating it already needs the fingerprint
+        const cred = await navigator.credentials.create({ publicKey: {
+          challenge: randBytes(32), rp: { name: "Biometric Card Lab" },
+          user: { id: randBytes(16), name: "cardholder", displayName: "Card owner" },
+          pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+          authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required", residentKey: "discouraged" },
+          timeout: 60000, attestation: "none" } });
+        TID.credId = new Uint8Array(cred.rawId);
+        try { localStorage.setItem("cardlab-passkey", toB64(cred.rawId)); } catch {}
+        return "match";
+      }
+      await navigator.credentials.get({ publicKey: {
+        challenge: randBytes(32), allowCredentials: [{ type: "public-key", id: TID.credId }],
+        userVerification: "required", timeout: 60000 } });
+      return "match";
+    } catch (e) {
+      if (e && e.name === "NotAllowedError") return "fail";  // wrong finger, cancelled or timed out
+      return "unavailable";                                  // e.g. blocked inside an embedded frame
+    }
+  }
+  async function runTouch(handler) {
+    if (TID.busy) return;
+    TID.busy = true;
+    reactor.classList.add("scanning");
+    $("sensorBig").textContent = "TOUCH ID"; $("sensorSmall").textContent = "Touch the Touch ID key on your Mac";
+    say(TID.credId ? "Touch ID requested. Put your finger on the key." : "First scan: your Mac will enrol your fingerprint for this page.");
+    const result = await touchId();
+    TID.busy = false; reactor.classList.remove("scanning");
+    if (result === "unavailable") {
+      setMode("sim");
+      say("Touch ID isn't available here, so the sensor switched to simulation. Open the GitHub Pages version to use your real fingerprint.");
+      tick(); return;
+    }
+    handler(result === "match");
+  }
+  function setMode(m) {
+    TID.mode = m === "touch" && TID.available ? "touch" : "sim";
+    const real = TID.mode === "touch";
+    $("modeRow").hidden = !TID.available;
+    $("fingerRow").hidden = real;
+    $("mTouch").setAttribute("aria-pressed", real); $("mSim").setAttribute("aria-pressed", !real);
+    reactor.setAttribute("aria-label", real ? "Fingerprint sensor. Click to scan with Touch ID." : "Fingerprint sensor. Press and hold to scan.");
+    tick();
+  }
+  $("mTouch").onclick = () => { setMode("touch"); say("Real Touch ID on. Click the sensor and use your own finger."); };
+  $("mSim").onclick = () => { setMode("sim"); say("Simulated sensor on. Press and hold, and pick whose finger it is."); };
+
+  // laptop notification for purchase approvals (works where the browser allows notifications)
+  function askNotify() {
+    try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission(); } catch {}
+  }
+  function notifyLaptop(amount) {
+    try {
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      const n = new Notification("NOVA BANK: approve this purchase?", {
+        body: `${fmt(amount)} at Northwind Electronics, card ending 1111. If this wasn't you, deny it.`,
+        requireInteraction: true, tag: "cardlab-approval" });
+      n.onclick = () => { window.focus(); n.close(); };
+      S.pending && (S.pending.note = n);
+    } catch {}
+  }
+
   function bindHold(el, handler) {
-    el.addEventListener("pointerdown", (e) => { e.preventDefault(); el.setPointerCapture?.(e.pointerId); startScan(handler); });
+    el.addEventListener("click", () => { if (TID.mode === "touch") runTouch(handler); });
+    el.addEventListener("pointerdown", (e) => { if (TID.mode === "touch") return; e.preventDefault(); el.setPointerCapture?.(e.pointerId); startScan(handler); });
     ["pointerup", "pointercancel", "pointerleave"].forEach((ev) => el.addEventListener(ev, () => endScan(true)));
-    el.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); startScan(handler); } });
-    el.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") endScan(true); });
+    el.addEventListener("keydown", (e) => { if (TID.mode === "touch") return; if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); startScan(handler); } });
+    el.addEventListener("keyup", (e) => { if (TID.mode === "touch") return; if (e.key === " " || e.key === "Enter") endScan(true); });
   }
   bindHold(reactor, cardScan);
   const setFinger = (f) => { S.finger = f; $("fOwner").setAttribute("aria-pressed", f === "owner"); $("fThief").setAttribute("aria-pressed", f !== "owner");
@@ -610,6 +695,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
       S.usedSteps.add(step); S.cvvFails = 0;
       S.pending = { amount, out, until: Date.now() + PUSH_MS };
       showPush();
+      notifyLaptop(amount);
       lcd(out, "wait", "WAITING", "CVV is valid. Approve the purchase to finish.");
       say("The code checks out. Now the bank asks the owner to approve this exact purchase.");
       return null;
@@ -628,9 +714,13 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     const p = S.pending, box = $("pushBox");
     box.innerHTML = `<div class="push" role="dialog" aria-label="Approve purchase"><div class="who">NOVA BANK: APPROVE THIS PURCHASE?</div>
       <div class="amt num">${fmt(p.amount)}</div><p>Northwind Electronics, card ending 1111. <span id="pushLeft" class="num"></span></p>
-      <div class="row"><button class="btn" id="pushDeny">Deny</button><button class="btn gold hold" id="pushOk"><span class="fill" id="pushFill"></span>Hold to approve with fingerprint</button></div></div>`;
+      <div class="row"><button class="btn" id="pushDeny">Deny</button><button class="btn gold hold" id="pushOk"><span class="fill" id="pushFill"></span>${TID.mode === "touch" ? "Approve with Touch ID" : "Hold to approve with fingerprint"}</button></div></div>`;
     $("pushDeny").onclick = () => finishPush("deny");
     const okBtn = $("pushOk");
+    if (TID.mode === "touch") {
+      okBtn.onclick = () => runTouch((ok) => finishPush(ok ? "approve" : "badfinger"));
+      return;
+    }
     let t0 = 0, raf = 0;
     const stop = () => { cancelAnimationFrame(raf); $("pushFill") && ($("pushFill").style.width = "0"); };
     const go = (e) => { e?.preventDefault?.(); if (raf) return; t0 = performance.now();
@@ -645,6 +735,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   function finishPush(decision) {
     const p = S.pending; if (!p) return;
     S.pending = null; $("pushBox").innerHTML = "";
+    try { p.note && p.note.close(); } catch {}
     if (decision === "approve") {
       record("Online", p.amount, true, "CVV valid, approved with fingerprint");
       lcd(p.out, "", `APPROVED ${fmt(p.amount)}`, "Code valid and approved by the owner.");
@@ -664,6 +755,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   }
   $("readCvv").onclick = async () => { $("coCvv").value = await codeAt(stepNow()); say("Code copied from the card's screen. Pay before it changes."); };
   $("payBtn").onclick = () => {
+    askNotify();
     const pan = $("coPan").value.replace(/\D/g, "");
     if (pan !== "4111111111111111") { lcd($("shopLcd"), "bad", "DECLINED", "Card number not recognised."); return; }
     payOnline($("coCvv").value.trim(), parseFloat($("coAmt").value), $("shopLcd"));
@@ -785,9 +877,9 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   // briefing
   const BRIEF = {
     1: { title: "Fingerprint unlock", body: "The card is switched off until its owner's fingerprint matches. The match happens on the card itself, so the fingerprint is never sent to the store or the bank. A stolen card can't be tapped.",
-      how: ["Match-on-card biometrics, simulated here and done with real Touch ID on a Mac", "15-second unlock window, checked with a clock that can't be changed", "3 wrong fingers lock the sensor for 30 seconds"], tech: ["Python", "Streamlit", "macOS Touch ID"] },
+      how: ["Match-on-card biometrics: your real Touch ID on a Mac (through passkeys), simulated elsewhere", "15-second unlock window, checked with a clock that can't be changed", "3 wrong fingers lock the sensor for 30 seconds"], tech: ["Python", "Streamlit", "macOS Touch ID"] },
     2: { title: "Live code + approval", body: "The 3-digit code on the back changes every 2 minutes. The bank works out the same code on its own, so a copied code goes stale fast. Then the owner approves the exact purchase with their fingerprint.",
-      how: ["TOTP codes (RFC 6238, HMAC-SHA1), the same maths as two-factor apps", "Each code works once (replay protection)", "Push approval shows merchant and amount, like a Duo push"], tech: ["pyotp", "HMAC", "Step-up auth"] },
+      how: ["TOTP codes (RFC 6238, HMAC-SHA1), the same maths as two-factor apps", "Each code works once (replay protection)", "Approval request lands as a notification on your laptop, and you approve with Touch ID"], tech: ["pyotp", "HMAC", "Step-up auth"] },
     3: { title: "Attack simulator", body: "Run the attacks a criminal would try. Every one is declined, logged, and turned into an alert for the bank's fraud team.",
       how: ["Expired codes are recognised as leaked data", "3 blocked attempts in 5 minutes triggers a card-testing alert", "3 wrong codes pause online payments for a minute"], tech: ["pandas", "rolling windows", "groupby"] },
     4: { title: "Fraud AI", body: "The bank learns how the owner normally spends from 400 past purchases. Then it flags anything that doesn't fit: a huge amount, or a normal amount at 3 AM when they never shop at night.",
@@ -796,7 +888,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   function renderBrief() {
     const b = BRIEF[S.mission];
     $("brief").innerHTML = `<h3></h3><p></p><h4>UNDER THE HOOD</h4><ul></ul><h4>BUILT WITH</h4><div class="tags"></div>
-      <div class="foot">This page re-creates the Python app in your browser so it runs from a link. The real code, with Touch ID and macOS alerts, is on <a href="https://github.com/Vineet1100/biometric-card-fraud-analytics" target="_blank" rel="noopener">GitHub</a>.</div>`;
+      <div class="foot">This page re-creates the Python app in your browser. On a Mac it uses your real Touch ID through passkeys. The full Python code is on <a href="https://github.com/Vineet1100/biometric-card-fraud-analytics" target="_blank" rel="noopener">GitHub</a>.</div>`;
     $("brief").querySelector("h3").textContent = b.title;
     $("brief").querySelector("p").textContent = b.body;
     const ul = $("brief").querySelector("ul"); b.how.forEach((t) => { const li = document.createElement("li"); li.textContent = t; ul.append(li); });
@@ -847,6 +939,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   // clock tick
   let lastStep = -1;
   async function tick() {
+    if (TID.busy) return;
     const now = Date.now();
     const left = S.unlockedUntil - now, lock = S.bioLockUntil - now;
     const on = left > 0, blocked = lock > 0;
@@ -859,7 +952,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
         $("sensorBig").textContent = Math.ceil(left / 1000) + "s"; $("sensorSmall").textContent = "to tap the card"; }
       else if (blocked) { ring.setAttribute("stroke", "#FF4D5E"); ring.setAttribute("stroke-dasharray", `${(lock / 30000) * RING} ${RING}`);
         $("sensorBig").textContent = "LOCKED"; $("sensorSmall").textContent = `Too many wrong fingers. ${Math.ceil(lock / 1000)}s`; }
-      else { ring.setAttribute("stroke-dasharray", `0 ${RING}`); $("sensorBig").textContent = "LOCKED"; $("sensorSmall").textContent = "Press and hold the sensor to scan"; }
+      else { ring.setAttribute("stroke-dasharray", `0 ${RING}`); $("sensorBig").textContent = "LOCKED"; $("sensorSmall").textContent = TID.mode === "touch" ? "Click the sensor to scan with Touch ID" : "Press and hold the sensor to scan"; }
     }
     const step = stepNow(), sLeft = STEP_S - (Math.floor(now / 1000) % STEP_S);
     if (step !== lastStep) { lastStep = step; $("cvv").textContent = await codeAt(step); }

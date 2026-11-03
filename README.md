@@ -6,7 +6,7 @@ I wanted to see how a few ideas from card security fit together in one place: bi
 
 **Live demo:** https://vineet1100.github.io/biometric-card-fraud-analytics/
 
-The live demo is a browser version of the app (`docs/index.html`) so it runs from a link with nothing to install. It uses the same TOTP and fraud-detection methods as `app.py`. The Python version adds real Touch ID and macOS approval alerts.
+The live demo is a browser version of the app (`docs/index.html`) so it runs from a link with nothing to install. It uses the same TOTP and fraud-detection methods as `app.py`. On a Mac it asks for your real fingerprint through Touch ID (using a passkey) and sends purchase approvals as a notification on your laptop. On devices without Touch ID the sensor is simulated.
 
 ## What it does
 
