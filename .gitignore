@@ -2,6 +2,16 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+.pytest_cache/
+
+# secrets and logs never go in the repo
 .env
-.DS_Store
+.env.*
+!.env.example
+*.pem
+*.key
+audit.log
+*.log
 audit_log.csv
+
+.DS_Store

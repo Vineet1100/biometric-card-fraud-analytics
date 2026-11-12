@@ -47,14 +47,71 @@ Some things to try:
 - tap the locked card three times in a row
 - set "Purchase time" to 3 AM in the sidebar and make a normal purchase
 
+## Bank API and MCP server
+
+The app keeps everything in one process. `bank/` splits the bank out into a real HTTP service, the way it would run in production, and `mcp_server/` lets AI agents use its fraud tools.
+
+**Bank API** (FastAPI). Terminals, checkouts and the cardholder's device each sign their requests with their own key, and each can only call the endpoints its job needs. In-store payments need a cryptogram that the card only produces after a fingerprint match. Online payments need the current CVV plus the cardholder's approval. Merchants only get generic response codes; the detailed reasons go to a tokenized audit log.
+
+```bash
+pip install -r requirements-bank.txt
+python -m bank.keys > .env          # fresh random keys, never committed
+set -a; source .env; set +a
+python -m bank                      # listens on 127.0.0.1:8080
+```
+
+**MCP server.** Gives an AI agent three read-only tools: `score_transaction`, `list_fraud_alerts` and `get_payment_stats`. It can't move money or see card numbers, and its credentials can't reach the payment endpoints even if the server is compromised. Add it to an MCP client (for example Claude Desktop) like this:
+
+```json
+{
+  "mcpServers": {
+    "card-fraud": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "env": {
+        "PYTHONPATH": "/path/to/biometric-card-fraud-analytics",
+        "MCP_BANK_URL": "http://127.0.0.1:8080",
+        "MCP_CLIENT_ID": "fraud-agent",
+        "MCP_CLIENT_SECRET": "<from your .env>"
+      }
+    }
+  }
+}
+```
+
+## Security
+
+[SYSTEM_DESIGN.md](SYSTEM_DESIGN.md) has the architecture, the payment flows, a STRIDE threat model and the control that stops each threat. Each control has a test that tries the attack:
+
+```bash
+pip install -r requirements-bank.txt pytest
+pytest
+```
+
+On every push, GitHub Actions runs the tests, Bandit (insecure code), pip-audit (vulnerable dependencies) and gitleaks (leaked secrets in the full history). To report a vulnerability, see [SECURITY.md](SECURITY.md).
+
+## Project structure
+
+```
+app.py, style.css        Streamlit app (card, merchants, bank in one process)
+docs/index.html          browser demo served by GitHub Pages
+bank/                    bank API: signing, authorization, fraud monitor, audit log
+mcp_server/              read-only MCP server for AI agents
+tests/                   attack and payment-flow tests
+SYSTEM_DESIGN.md         architecture and threat model
+```
+
 ## Limitations
 
-It's a simulation, so a few things are simplified:
+It's a prototype, so a few things are simplified:
 
-- the CVV secret is kept in app memory; on a real card it lives in the secure element and the bank's HSM
+- keys come from environment variables; a real bank keeps them in an HSM or KMS
+- in-store cryptograms use one HMAC key instead of EMV keys derived per card
+- the device signs approvals with a shared key instead of a verified passkey signature
 - the spending history is generated with NumPy, not real transaction data
-- real in-store payments are authorized with EMV cryptograms, not by checking whether the card is unlocked
-- decline reasons are detailed on purpose; a real merchant only gets generic codes
+- in the Streamlit app, decline reasons are detailed on purpose; the bank API only gives merchants generic codes
+
+SYSTEM_DESIGN.md lists everything a production deployment would add.
 
 ## License
 
