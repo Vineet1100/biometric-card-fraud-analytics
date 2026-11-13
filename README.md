@@ -6,7 +6,7 @@ I wanted to see how a few ideas from card security fit together in one place: bi
 
 **Live demo:** https://vineet1100.github.io/biometric-card-fraud-analytics/
 
-The live demo is a browser version of the app (`docs/index.html`) so it runs from a link with nothing to install. It uses the same TOTP and fraud-detection methods as `app.py`. On a Mac it asks for your real fingerprint through Touch ID (using a passkey) and sends purchase approvals as a notification on your laptop. On devices without Touch ID the sensor is simulated.
+The live demo is a browser version of the app (`docs/index.html`) so it runs from a link with nothing to install. It has a page for each mission (pay in store, pay online, attack the card, fraud AI), plus a home page that tracks your progress, a bank server page with the log and alerts, and a how-it-works page. Each page has its own link, such as `#/fraud-ai`, and the card, payments and alerts carry over as you move between them. It uses the same TOTP and fraud-detection methods as `app.py`. On a Mac it asks for your real fingerprint through Touch ID (using a passkey) and sends purchase approvals as a notification on your laptop. On devices without Touch ID the sensor is simulated.
 
 ## What it does
 
@@ -38,6 +38,8 @@ streamlit run app.py
 ```
 
 Then open http://localhost:8501 in your browser (Streamlit usually opens it for you).
+
+The app is split into pages in the sidebar: Overview (live stats and a checklist of things to try), Pay in store, Pay online, Fraud alerts (alerts and the spending chart), Transaction log (filters and CSV download) and How it works. The sidebar menu shows how many alerts and payments there are, and the settings stay underneath it on every page.
 
 Some things to try:
 

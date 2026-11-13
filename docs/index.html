@@ -50,6 +50,7 @@ button,input,select{font:inherit;color:inherit}
 .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:5px 11px;
   font:500 .76rem/1 var(--f-mono);color:var(--muted);background:rgba(4,7,13,.5)}
 .chip i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+a.btn{text-decoration:none}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:10px;border:1px solid var(--line-strong);
   background:rgba(94,231,255,.06);padding:9px 14px;font:600 .86rem/1 var(--f-display);letter-spacing:.05em;cursor:pointer;
   transition:background .2s,border-color .2s,transform .1s}
@@ -217,6 +218,58 @@ input[type=range]{width:100%;accent-color:var(--holo)}
 .sev{font:600 .66rem/1 var(--f-mono);letter-spacing:.08em}
 .sev.high{color:var(--red)} .sev.med{color:var(--amber)}
 
+/* page navigation */
+.pnav{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;border:1px solid var(--line);border-radius:14px;padding:6px;background:rgba(4,7,13,.55)}
+.pnav a{flex:none;display:flex;align-items:center;gap:8px;text-decoration:none;color:var(--muted);border-radius:10px;padding:8px 12px;border:1px solid transparent;
+  font:600 .84rem/1.1 var(--f-display);letter-spacing:.04em;white-space:nowrap}
+.pnav a small{font:500 .66rem/1 var(--f-mono);color:var(--holo-dim);letter-spacing:.06em}
+.pnav a:hover{color:var(--ink);background:rgba(94,231,255,.06)}
+.pnav a[aria-current="page"]{color:var(--ink);border-color:var(--holo);background:rgba(94,231,255,.10);box-shadow:inset 0 -2px 0 var(--holo)}
+.pnav a[aria-current="page"] small{color:var(--holo)}
+.pnav .tick{color:var(--green);font:600 .7rem/1 var(--f-mono)}
+.pnav .badge{min-width:20px;text-align:center;border-radius:999px;padding:3px 6px;font:600 .68rem/1 var(--f-mono);background:rgba(255,77,94,.16);color:var(--red)}
+.pnav .sep{flex:none;width:1px;background:var(--line);margin:6px 2px}
+.page{display:grid;gap:18px}
+.page:focus{outline:none}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 16px 0}
+.mhead small{font:500 .72rem/1 var(--f-mono);color:var(--muted);letter-spacing:.08em}
+.mhead .done{color:var(--green)}
+.steps{display:flex;gap:5px}
+.steps i{width:22px;height:4px;border-radius:2px;background:var(--line)}
+.steps i.on{background:var(--holo)} .steps i.ok{background:var(--green)}
+.mnav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid var(--line);padding:12px 16px}
+.mnav a{text-decoration:none}
+/* home */
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px;align-items:stretch}
+.hero-copy{padding:22px 24px}
+.hero-copy h2{font:700 clamp(1.6rem,3.2vw,2.3rem)/1.1 var(--f-display);margin:0 0 10px;text-wrap:balance}
+.hero-copy p{color:var(--muted);margin:0 0 16px;max-width:60ch}
+.progress{display:grid;gap:8px;margin:4px 0 18px}
+.progress .bar2{height:8px;border-radius:999px;background:rgba(94,231,255,.10);overflow:hidden}
+.progress .bar2 span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--holo),var(--green));transition:width .5s}
+.progress small{font:500 .74rem/1 var(--f-mono);color:var(--muted)}
+.hero-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:stretch}
+.hero-stats .stat{border-left:0;border-top:1px solid var(--line);padding:16px 18px}
+.hero-stats .stat:nth-child(-n+2){border-top:0}
+.hero-stats .stat:nth-child(even){border-left:1px solid var(--line)}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.mcard{display:grid;gap:8px;align-content:start;text-decoration:none;color:inherit;padding:16px;transition:border-color .2s,transform .2s}
+.mcard:hover{border-color:var(--holo);transform:translateY(-2px)}
+.mcard small{font:500 .7rem/1 var(--f-mono);color:var(--muted);letter-spacing:.08em}
+.mcard h3{font:600 1.15rem/1.2 var(--f-display);margin:0}
+.mcard p{margin:0;color:var(--muted);font-size:.9rem}
+.mcard .go{font:600 .8rem/1 var(--f-display);letter-spacing:.06em;color:var(--holo);margin-top:4px}
+.mcard.isdone .go{color:var(--green)}
+.more{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+/* how it works */
+.how{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.how .brief{padding:16px}
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:14px 16px 16px;counter-reset:f}
+.flow div{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(4,7,13,.45);font-size:.9rem;color:var(--muted)}
+.flow b{display:block;font:600 .95rem/1.25 var(--f-display);color:var(--ink);margin-bottom:4px}
+.flow b::before{counter-increment:f;content:counter(f,decimal-leading-zero) "  ";font:500 .72rem/1 var(--f-mono);color:var(--gold)}
+.toast{cursor:pointer}
+
 /* toast */
 .toasts{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(16px + env(safe-area-inset-top,0px));display:grid;gap:8px;z-index:20;width:min(340px,calc(100vw - 32px))}
 .toast{border:1px solid var(--red);background:rgba(20,6,9,.95);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.6),0 0 24px -8px rgba(255,77,94,.6);animation:in .3s ease-out}
@@ -224,8 +277,8 @@ input[type=range]{width:100%;accent-color:var(--holo)}
 .toast div{font:600 .95rem/1.35 var(--f-display);margin-top:4px}
 @keyframes in{from{transform:translateY(-8px);opacity:0}}
 
-@media (max-width:1180px){.main{grid-template-columns:minmax(280px,360px) minmax(0,1fr)}.brief-panel{grid-column:1/-1}}
-@media (max-width:820px){.main,.deck{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.stat:nth-child(4){border-left:0}
+@media (max-width:1180px){.main{grid-template-columns:minmax(280px,360px) minmax(0,1fr)}.brief-panel{grid-column:1/-1}.mgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){.main,.deck,.hero,.how,.more,.mgrid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.stat:nth-child(4){border-left:0}
   .log li{grid-template-columns:62px 1fr auto}.log .ch{display:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -247,9 +300,50 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     </div>
   </header>
 
-  <div class="nova" role="status" aria-live="polite"><b>NOVA &gt;</b><span id="nova">Systems online. Start with mission 01: hold the glowing sensor to unlock the card.</span></div>
+  <nav class="pnav" aria-label="Pages">
+    <a href="#/" data-route="home">Home</a>
+    <span class="sep" aria-hidden="true"></span>
+    <a href="#/store" data-route="store"><small>01</small>Pay in store<span class="tick" data-tick="1"></span></a>
+    <a href="#/online" data-route="online"><small>02</small>Pay online<span class="tick" data-tick="2"></span></a>
+    <a href="#/attack" data-route="attack"><small>03</small>Attack the card<span class="tick" data-tick="3"></span></a>
+    <a href="#/fraud-ai" data-route="fraud-ai"><small>04</small>Fraud AI<span class="tick" data-tick="4"></span></a>
+    <span class="sep" aria-hidden="true"></span>
+    <a href="#/bank" data-route="bank">Bank server<span class="badge" id="navAlerts" hidden>0</span></a>
+    <a href="#/how" data-route="how">How it works</a>
+  </nav>
 
-  <div class="main">
+  <div class="nova" role="status" aria-live="polite"><b>NOVA &gt;</b><span id="nova">Systems online. Pick a mission, or start with 01: hold the glowing sensor to unlock the card.</span></div>
+
+  <!-- page: home -->
+  <section class="page" data-page="home" tabindex="-1" aria-labelledby="homeTitle">
+    <div class="hero">
+      <div class="panel hero-copy">
+        <h2 id="homeTitle">A payment card that only works for its owner</h2>
+        <p>Unlock it with a fingerprint, pay in a store and online, then try to break in and watch the bank catch you. Each mission is its own page, and the card, payments and alerts carry over between them.</p>
+        <div class="progress"><div class="bar2"><span id="progBar"></span></div><small id="progText">0 of 4 missions complete</small></div>
+        <div class="row"><a class="btn gold" href="#/store" id="startBtn">Start mission 01</a><a class="btn" href="#/how">How it works</a></div>
+      </div>
+      <div class="panel hero-stats">
+        <div class="stat"><b id="hAll">0</b><span>Payment attempts</span></div>
+        <div class="stat"><b id="hOk" class="ok">0</b><span>Approved</span></div>
+        <div class="stat"><b id="hBlk" class="bad">0</b><span>Fraud blocked</span></div>
+        <div class="stat"><b id="hAl" class="warn">0</b><span>Alerts</span></div>
+      </div>
+    </div>
+    <div class="mgrid">
+      <a class="panel mcard" href="#/store" data-mcard="1"><small>MISSION 01</small><h3>Pay in store</h3><p>A stolen card is useless at a terminal. Unlock the chip with a fingerprint and tap.</p><span class="go">Start &rarr;</span></a>
+      <a class="panel mcard" href="#/online" data-mcard="2"><small>MISSION 02</small><h3>Pay online</h3><p>The CVV changes every 2 minutes, and the owner approves each purchase.</p><span class="go">Start &rarr;</span></a>
+      <a class="panel mcard" href="#/attack" data-mcard="3"><small>MISSION 03</small><h3>Attack the card</h3><p>Replay leaked data, test a stolen card, guess the CVV. See every attack blocked.</p><span class="go">Start &rarr;</span></a>
+      <a class="panel mcard" href="#/fraud-ai" data-mcard="4"><small>MISSION 04</small><h3>Fraud AI</h3><p>Test purchases against a model that learned the owner's spending.</p><span class="go">Start &rarr;</span></a>
+    </div>
+    <div class="more">
+      <a class="panel mcard" href="#/bank"><small>BANK SERVER</small><h3>Every attempt, live</h3><p>The bank's log of approvals and declines, and the alerts its fraud monitor raised.</p><span class="go">Open &rarr;</span></a>
+      <a class="panel mcard" href="#/how"><small>HOW IT WORKS</small><h3>The security, step by step</h3><p>Match-on-card fingerprints, TOTP codes, push approval, and the anomaly models.</p><span class="go">Open &rarr;</span></a>
+    </div>
+  </section>
+
+  <!-- page: missions (01 to 04) -->
+  <section class="page main" data-page="mission" tabindex="-1">
     <!-- card + sensor -->
     <section class="panel" aria-label="The card">
       <div class="panel-h"><h2>The card</h2><span id="cvvTimer" class="num">CVV changes in 2:00</span></div>
@@ -294,14 +388,9 @@ input[type=range]{width:100%;accent-color:var(--holo)}
 
     <!-- missions -->
     <section class="panel" aria-label="Missions">
-      <div class="tabs" role="tablist">
-        <button class="tab" role="tab" id="t1" aria-selected="true" data-m="1"><small>MISSION 01</small><b>Pay in store</b></button>
-        <button class="tab" role="tab" id="t2" aria-selected="false" data-m="2"><small>MISSION 02</small><b>Pay online</b></button>
-        <button class="tab" role="tab" id="t3" aria-selected="false" data-m="3"><small>MISSION 03</small><b>Attack the card</b></button>
-        <button class="tab" role="tab" id="t4" aria-selected="false" data-m="4"><small>MISSION 04</small><b>Fraud AI</b></button>
-      </div>
+      <div class="mhead"><small id="mLabel">MISSION 01 OF 04</small><div class="steps" id="mSteps" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
 
-      <div class="mission" id="m1" role="tabpanel">
+      <div class="mission" id="m1">
         <h3>Tap the card at a store</h3>
         <p class="lead">First tap without scanning: it gets declined. Then hold the sensor, and tap again before the ring runs out.</p>
         <div class="row">
@@ -311,7 +400,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
         <div class="lcd" id="lcd"><div class="big">TAP CARD</div><div>Corner Market terminal ready</div></div>
       </div>
 
-      <div class="mission" id="m2" role="tabpanel" hidden>
+      <div class="mission" id="m2" hidden>
         <h3>Buy something online</h3>
         <p class="lead">Read the code off the card, pay, then approve the purchase with your fingerprint. The code changes every 2 minutes, so an old one fails.</p>
         <div class="row">
@@ -327,7 +416,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
         <div class="lcd" id="shopLcd" hidden></div>
       </div>
 
-      <div class="mission" id="m3" role="tabpanel" hidden>
+      <div class="mission" id="m3" hidden>
         <h3>Try to break in</h3>
         <p class="lead">These are three ways criminals attack cards. Run each one and watch the bank block it and raise an alert below.</p>
         <div class="split">
@@ -338,7 +427,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
         <div class="lcd" id="atkLcd" hidden></div>
       </div>
 
-      <div class="mission" id="m4" role="tabpanel" hidden>
+      <div class="mission" id="m4" hidden>
         <h3>Ask the fraud AI</h3>
         <p class="lead">The grey dots are the owner's last 400 purchases. Set up a new purchase and the model decides whether it looks like them.</p>
         <div class="chart-wrap"><canvas id="chart" aria-label="Spending profile: amount by hour of day"></canvas><div class="tip" id="tip" hidden></div></div>
@@ -360,6 +449,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
           <div class="gauge"><small>PATTERN CHECK (LOF)</small><b id="vL" class="num">-</b><span id="vLt">flags above -</span></div>
         </div>
       </div>
+      <div class="mnav"><a class="btn" id="mPrev" href="#/">&larr; Home</a><a class="btn gold" id="mNext" href="#/online">Next: Pay online &rarr;</a></div>
     </section>
 
     <!-- briefing -->
@@ -367,9 +457,10 @@ input[type=range]{width:100%;accent-color:var(--holo)}
       <div class="panel-h"><h2>Briefing</h2><span>plain English</span></div>
       <div class="pad brief" id="brief"></div>
     </aside>
-  </div>
+  </section>
 
-  <!-- bank deck -->
+  <!-- page: bank server -->
+  <section class="page" data-page="bank" tabindex="-1" aria-label="Bank server">
   <div class="deck">
     <section class="panel" aria-label="Bank server">
       <div class="panel-h"><h2>Bank server</h2><span>every attempt, live</span></div>
@@ -387,6 +478,21 @@ input[type=range]{width:100%;accent-color:var(--holo)}
       <ul class="alerts" id="alerts"><li class="empty">Quiet so far. Mission 03 will change that.</li></ul>
     </section>
   </div>
+  </section>
+
+  <!-- page: how it works -->
+  <section class="page" data-page="how" tabindex="-1" aria-labelledby="howTitle">
+    <section class="panel">
+      <div class="panel-h"><h2 id="howTitle">What happens when you pay</h2><span>in order</span></div>
+      <div class="flow">
+        <div><b>Unlock</b>The fingerprint is matched on the card. Only a yes or no leaves the sensor, and the chip stays live for 15 seconds.</div>
+        <div><b>Live code</b>Online, the bank works out the same 3-digit code from a shared secret and the time, so a copied code expires.</div>
+        <div><b>Approve</b>The bank asks the owner to approve that exact amount and shop, with their fingerprint.</div>
+        <div><b>Watch</b>Every attempt is logged, and the fraud monitor looks across the log for patterns a single decline can't show.</div>
+      </div>
+    </section>
+    <div class="how" id="howGrid"></div>
+  </section>
 </div>
 <div class="toasts" id="toasts" aria-live="assertive"></div>
 
@@ -400,7 +506,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   const S = {
     unlockedUntil: 0, finger: "owner", bioFails: 0, bioLockUntil: 0,
     cvvFails: 0, onlineBlockedUntil: 0, usedSteps: new Set(),
-    ledger: [], alerts: [], alertKeys: new Set(), pending: null, mission: 1,
+    ledger: [], alerts: [], alertKeys: new Set(), pending: null, mission: 1, done: new Set(),
   };
 
   // NOVA voice
@@ -416,6 +522,8 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     const t = document.createElement("div");
     t.className = "toast"; t.innerHTML = "<small>FRAUD ALERT</small><div></div>";
     t.querySelector("div").textContent = text;
+    t.title = "Open the bank server";
+    t.onclick = () => { location.hash = "#/bank"; t.remove(); };
     $("toasts").prepend(t);
     setTimeout(() => t.remove(), 5200);
   }
@@ -906,17 +1014,66 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     const tg = $("brief").querySelector(".tags"); b.tech.forEach((t) => { const s = document.createElement("span"); s.className = "tag"; s.textContent = t; tg.append(s); });
   }
 
-  // tabs
+  // pages: each one has its own address (#/store, #/bank ...), so the back button and links work,
+  // while the card, the bank log and the alerts stay in memory across pages
+  const MISSIONS = [null, { route: "store", name: "Pay in store" }, { route: "online", name: "Pay online" },
+    { route: "attack", name: "Attack the card" }, { route: "fraud-ai", name: "Fraud AI" }];
+  const PAGES = { "": "home", store: 1, online: 2, attack: 3, "fraud-ai": 4, bank: "bank", how: "how" };
+  const TITLES = { home: "Home", bank: "Bank server", how: "How it works" };
   function showMission(m) {
     S.mission = m;
-    for (let i = 1; i <= 4; i++) { $("m" + i).hidden = i !== m; $("t" + i).setAttribute("aria-selected", i === m); }
+    for (let i = 1; i <= 4; i++) $("m" + i).hidden = i !== m;
+    $("mLabel").innerHTML = `MISSION 0${m} OF 04${S.done.has(m) ? ' <span class="done">COMPLETE</span>' : ""}`;
+    [...$("mSteps").children].forEach((el, i) => { el.className = i + 1 === m ? "on" : S.done.has(i + 1) ? "ok" : ""; });
+    const prev = m > 1 ? MISSIONS[m - 1] : null, next = m < 4 ? MISSIONS[m + 1] : null;
+    $("mPrev").href = prev ? "#/" + prev.route : "#/"; $("mPrev").textContent = prev ? `\u2190 ${prev.name}` : "\u2190 Home";
+    $("mNext").href = next ? "#/" + next.route : "#/bank"; $("mNext").textContent = next ? `Next: ${next.name} \u2192` : "See the bank server \u2192";
     renderBrief();
     if (m === 4) requestAnimationFrame(updateAI);
   }
-  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => showMission(+t.dataset.m));
+  function route() {
+    const key = location.hash.replace(/^#\/?/, "").split("?")[0];
+    const target = key in PAGES ? PAGES[key] : "home";
+    const kind = typeof target === "number" ? "mission" : target;
+    document.querySelectorAll("[data-page]").forEach((el) => { el.hidden = el.dataset.page !== kind; });
+    document.querySelectorAll(".pnav a").forEach((a) => {
+      const on = a.dataset.route === (key in PAGES ? key || "home" : "home");
+      on ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current");
+      if (on) a.scrollIntoView({ block: "nearest", inline: "nearest" });
+    });
+    if (kind === "mission") showMission(target);
+    const name = kind === "mission" ? MISSIONS[target].name : TITLES[kind];
+    document.title = `${name} | Biometric Card Lab`;
+    if (kind === "bank") renderBank();
+    if (route.started) { scrollTo({ top: 0 }); document.querySelector(`[data-page="${kind}"]`).focus({ preventScroll: true }); }
+    route.started = true;
+  }
+  addEventListener("hashchange", route);
   function markDone(m) {
-    const small = $("t" + m).querySelector("small");
-    if (!small.querySelector(".done")) small.insertAdjacentHTML("beforeend", ' <span class="done">COMPLETE</span>');
+    if (S.done.has(m)) return;
+    S.done.add(m);
+    document.querySelector(`[data-tick="${m}"]`).textContent = "\u2713";
+    const card = document.querySelector(`[data-mcard="${m}"]`);
+    card.classList.add("isdone"); card.querySelector(".go").textContent = "Complete \u2713 Replay \u2192";
+    $("progBar").style.width = (S.done.size / 4) * 100 + "%";
+    $("progText").textContent = `${S.done.size} of 4 missions complete`;
+    const first = [1, 2, 3, 4].find((i) => !S.done.has(i));
+    $("startBtn").href = first ? "#/" + MISSIONS[first].route : "#/bank";
+    $("startBtn").textContent = first ? `Continue: mission 0${first}` : "All done: see the bank server";
+    if (S.mission === m) showMission(m);
+  }
+  function renderHow() {
+    const grid = $("howGrid");
+    for (const m of [1, 2, 3, 4]) {
+      const b = BRIEF[m], sec = document.createElement("section");
+      sec.className = "panel";
+      sec.innerHTML = `<div class="panel-h"><h2></h2><a class="btn" href="#/${MISSIONS[m].route}">Try it</a></div><div class="brief"><p></p><h4>UNDER THE HOOD</h4><ul></ul><h4>BUILT WITH</h4><div class="tags"></div></div>`;
+      sec.querySelector("h2").textContent = `0${m} ${b.title}`;
+      sec.querySelector("p").textContent = b.body;
+      b.how.forEach((t) => { const li = document.createElement("li"); li.textContent = t; sec.querySelector("ul").append(li); });
+      b.tech.forEach((t) => { const sp = document.createElement("span"); sp.className = "tag"; sp.textContent = t; sec.querySelector(".tags").append(sp); });
+      grid.append(sec);
+    }
   }
 
   // bank deck
@@ -925,6 +1082,9 @@ input[type=range]{width:100%;accent-color:var(--holo)}
     $("sAll").textContent = L.length; $("sOk").textContent = ok.length;
     $("sBlk").textContent = L.filter((e) => e.block).length; $("sAl").textContent = S.alerts.length;
     $("sVol").textContent = fmt(ok.reduce((s, e) => s + e.amount, 0));
+    $("hAll").textContent = L.length; $("hOk").textContent = ok.length;
+    $("hBlk").textContent = L.filter((e) => e.block).length; $("hAl").textContent = S.alerts.length;
+    $("navAlerts").hidden = !S.alerts.length; $("navAlerts").textContent = S.alerts.length;
     const log = $("log"); log.innerHTML = "";
     if (!L.length) log.innerHTML = '<li class="empty" style="display:block">No payments yet. Run a mission to fill the log.</li>';
     [...L].reverse().forEach((e) => {
@@ -977,7 +1137,7 @@ input[type=range]{width:100%;accent-color:var(--holo)}
   }
   setInterval(tick, 250);
 
-  renderBrief(); renderBank(); tick();
+  renderHow(); renderBank(); route(); tick();
 })();
 </script>
 </body>

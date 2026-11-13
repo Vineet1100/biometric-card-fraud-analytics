@@ -1165,18 +1165,13 @@ def alerts_html(alerts: pd.DataFrame) -> str:
     return "".join(rows)
 
 
-def bank_dashboard() -> None:
-    ss = st.session_state
-    alerts = run_fraud_monitor()
-    ledger = ss.ledger
-
+def bank_stats(alerts: pd.DataFrame) -> None:
+    ledger = st.session_state.ledger
     total = len(ledger)
     approved = [e for e in ledger if e["Status"].endswith("APPROVED")]
     blocked = sum(1 for e in ledger if e["Security block"])
     rate = f"{len(approved) / total:.0%}" if total else "No payments yet"
     html(f"""
-<div class="nv-bank-head"><div><div class="nv-title">Bank server</div>
-  <p>Every payment attempt lands here. The bank approves or declines it, then looks across the whole log for fraud patterns.</p></div></div>
 <div class="nv-stats">
   <div class="nv-stat"><b>{total}</b><span>Payment attempts</span></div>
   <div class="nv-stat"><b>{len(approved)}</b><span>Approved ({rate})</span></div>
@@ -1186,6 +1181,12 @@ def bank_dashboard() -> None:
 </div>
 """)
 
+
+def page_head(title: str, lead: str) -> None:
+    html(f'<div class="nv-bank-head"><div><div class="nv-title">{title}</div><p>{lead}</p></div></div>')
+
+
+def missing_extras_note() -> None:
     missing = [
         name for name, ok in (("scikit-learn", SKLEARN_OK), ("plotly", go is not None)) if not ok
     ]
@@ -1195,59 +1196,54 @@ def bank_dashboard() -> None:
             f"`pip3 install {' '.join(missing)}`"
         )
 
-    tab_alerts, tab_chart, tab_log, tab_how = st.tabs(
-        [
-            f"Fraud alerts ({len(alerts)})",
-            "Spending profile",
-            f"Transaction log ({total})",
-            "How it works",
-        ]
-    )
 
-    with tab_alerts:
-        html(alerts_html(alerts))
-
-    with tab_chart:
-        spending_chart(alerts)
-
-    with tab_log:
-        if ledger:
-            df = pd.DataFrame(ledger).iloc[::-1]
-            st.dataframe(df, hide_index=True)
-            d1, d2, _ = st.columns([1, 1, 3])
-            d1.download_button(
-                "Download CSV",
-                df.to_csv(index=False),
-                "audit_log.csv",
-                "text/csv",
-                icon=":material/download:",
-            )
-            if d2.button("Clear log", icon=":material/delete:"):
-                ss.ledger = []
-                ss.alerted_keys = set()
-                ss.pos_result = None
-                ss.online_result = None
-                st.rerun()
-        else:
-            html(
-                '<div class="nv-empty">No payments yet. Tap the card at Corner Market or check out at '
-                f"{MERCHANT_NAME} to start the log.</div>"
-            )
-        with st.expander("Bank internals (a real bank never shows these)"):
-            bank_totp = pyotp.TOTP(ss.bank_secret, digits=CVV_DIGITS, interval=CVV_STEP_SECONDS)
-            now = time.time()
-            st.write(
-                {
-                    "current_time_step": int(now // CVV_STEP_SECONDS),
-                    "expected_cvv_now": bank_totp.now(),
-                    "previous_window_cvv": bank_totp.at(now - CVV_STEP_SECONDS),
-                    "consecutive_bad_cvvs": ss.cvv_failures,
-                    "online_blocked": time.monotonic() < ss.online_blocked_until,
-                }
-            )
-
-    with tab_how:
-        explainer()
+def transaction_log() -> None:
+    ss = st.session_state
+    ledger = ss.ledger
+    if ledger:
+        df = pd.DataFrame(ledger).iloc[::-1]
+        channels = st.segmented_control(
+            "Show", ["In-Store", "Online"], selection_mode="multi", default=["In-Store", "Online"]
+        )
+        outcome = st.segmented_control(
+            "Outcome", ["Approved", "Declined"], selection_mode="multi", default=["Approved", "Declined"]
+        )
+        shown = df[df["Type"].isin(channels or [])]
+        keep = shown["Status"].str.endswith("APPROVED").map({True: "Approved", False: "Declined"})
+        shown = shown[keep.isin(outcome or [])]
+        st.dataframe(shown, hide_index=True)
+        st.caption(f"Showing {len(shown)} of {len(df)} attempts.")
+        d1, d2, _ = st.columns([1, 1, 3])
+        d1.download_button(
+            "Download CSV",
+            df.to_csv(index=False),
+            "audit_log.csv",
+            "text/csv",
+            icon=":material/download:",
+        )
+        if d2.button("Clear log", icon=":material/delete:"):
+            ss.ledger = []
+            ss.alerted_keys = set()
+            ss.pos_result = None
+            ss.online_result = None
+            st.rerun()
+    else:
+        html(
+            '<div class="nv-empty">No payments yet. Tap the card at Corner Market or check out at '
+            f"{MERCHANT_NAME} to start the log.</div>"
+        )
+    with st.expander("Bank internals (a real bank never shows these)"):
+        bank_totp = pyotp.TOTP(ss.bank_secret, digits=CVV_DIGITS, interval=CVV_STEP_SECONDS)
+        now = time.time()
+        st.write(
+            {
+                "current_time_step": int(now // CVV_STEP_SECONDS),
+                "expected_cvv_now": bank_totp.now(),
+                "previous_window_cvv": bank_totp.at(now - CVV_STEP_SECONDS),
+                "consecutive_bad_cvvs": ss.cvv_failures,
+                "online_blocked": time.monotonic() < ss.online_blocked_until,
+            }
+        )
 
 
 def explainer() -> None:
@@ -1289,24 +1285,119 @@ protection).
 """)
 
 
-# --- Page ---
+# --- Pages ---
+# Each part of the system gets its own page in the sidebar menu. Session state is shared,
+# so a card unlocked on one page is still unlocked on the next, and every payment lands in
+# the same bank log.
+def demo_progress() -> list[tuple[str, bool]]:
+    ledger = st.session_state.ledger
+    return [
+        ("Pay in store with your fingerprint",
+         any(e["Type"] == "In-Store" and e["Status"].endswith("APPROVED") for e in ledger)),
+        ("Pay online with the live CVV and approve it",
+         any(e["Type"] == "Online" and e["Status"].endswith("APPROVED") for e in ledger)),
+        ("Get a fraud attempt blocked", any(e["Security block"] for e in ledger)),
+        ("Trigger a fraud alert", bool(st.session_state.alerted_keys)),
+    ]
+
+
 def main() -> None:
     st.set_page_config(page_title="Nova card security lab", page_icon="💳", layout="wide")
     init_state()
     st.markdown(f"<style>{STYLE_PATH.read_text()}</style>", unsafe_allow_html=True)
 
+    # the monitor runs on every page so alerts pop up wherever you are
+    alerts = run_fraud_monitor()
+
+    def overview() -> None:
+        page_head(
+            "Nova card security lab",
+            "A payment card that only works for its owner. Unlock it with a fingerprint, pay in a store "
+            "and online, try to break in, and watch the bank's fraud monitor catch it. Use the menu on "
+            "the left to move between pages; everything you do carries over.",
+        )
+        bank_stats(alerts)
+        steps = demo_progress()
+        done = sum(ok for _, ok in steps)
+        st.markdown(f"#### Try it ({done} of {len(steps)} done)")
+        st.progress(done / len(steps))
+        for label, ok in steps:
+            st.markdown(f"{':material/check_circle:' if ok else ':material/radio_button_unchecked:'} {label}")
+        st.markdown("#### Pages")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.page_link(store_page, label="Pay in store: tap the card at Corner Market", icon=":material/contactless:")
+            st.page_link(online_page, label=f"Pay online: check out at {MERCHANT_NAME}", icon=":material/shopping_cart:")
+            st.page_link(alerts_page, label="Fraud alerts and spending profile", icon=":material/notification_important:")
+        with c2:
+            st.page_link(log_page, label="Transaction log: every attempt, with CSV export", icon=":material/receipt_long:")
+            st.page_link(how_page, label="How it works: the security and the maths", icon=":material/menu_book:")
+
+    def pay_in_store() -> None:
+        page_head(
+            "Pay in store",
+            "Tap without scanning and the chip refuses. Scan the owner's finger, then tap before the ring "
+            "runs out. Try a stranger's finger three times to see the sensor lock.",
+        )
+        card_panel()
+        _, mid, _ = st.columns([1, 2, 1])
+        with mid:
+            pos_terminal()
+
+    def pay_online() -> None:
+        page_head(
+            "Pay online",
+            "Read the CVV off the card's screen and pay. The code changes every 2 minutes, so old card data "
+            "fails, and the bank still asks the owner to approve the purchase.",
+        )
+        card_panel()
+        _, mid, _ = st.columns([1, 2, 1])
+        with mid:
+            online_checkout()
+
+    def fraud_alerts() -> None:
+        page_head(
+            "Fraud alerts",
+            "The bank looks across the whole log for patterns a single decline doesn't show, and an ML model "
+            "learned from 400 past purchases flags spending that doesn't fit the owner.",
+        )
+        bank_stats(alerts)
+        missing_extras_note()
+        tab_alerts, tab_chart = st.tabs([f"Alerts ({len(alerts)})", "Spending profile"])
+        with tab_alerts:
+            html(alerts_html(alerts))
+        with tab_chart:
+            spending_chart(alerts)
+
+    def log() -> None:
+        page_head("Transaction log", "Every payment attempt the bank received, newest first.")
+        bank_stats(alerts)
+        transaction_log()
+
+    def how_it_works() -> None:
+        page_head("How it works", "What protects each payment, in the order the bank checks it.")
+        explainer()
+
+    n_alerts = len(alerts)
+    home = st.Page(overview, title="Overview", icon=":material/home:", url_path="overview", default=True)
+    store_page = st.Page(pay_in_store, title="Pay in store", icon=":material/contactless:", url_path="pay-in-store")
+    online_page = st.Page(pay_online, title="Pay online", icon=":material/shopping_cart:", url_path="pay-online")
+    alerts_page = st.Page(fraud_alerts, title=f"Fraud alerts ({n_alerts})" if n_alerts else "Fraud alerts",
+                          icon=":material/notification_important:", url_path="fraud-alerts")
+    log_page = st.Page(log, title=f"Transaction log ({len(st.session_state.ledger)})",
+                       icon=":material/receipt_long:", url_path="transaction-log")
+    how_page = st.Page(how_it_works, title="How it works", icon=":material/menu_book:", url_path="how-it-works")
+    nav = st.navigation({
+        "": [home],
+        "Use the card": [store_page, online_page],
+        "Bank": [alerts_page, log_page],
+        "Learn": [how_page],
+    })
+
     with st.sidebar:
         security_settings()
 
-    card_panel()
-
-    left, right = st.columns(2, gap="large")
-    with left:
-        pos_terminal()
-    with right:
-        online_checkout()
-
-    bank_dashboard()
+    nav.run()
 
 
 main()
