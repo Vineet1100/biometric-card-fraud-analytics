@@ -101,7 +101,7 @@ pip install -r requirements-web.txt
 python -m web
 ```
 
-Then open http://127.0.0.1:5000.
+Then open http://127.0.0.1:8000.
 
 To put it online for free on [Render](https://render.com):
 

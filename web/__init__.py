@@ -5,7 +5,7 @@ TOTP CVV, approvals, attacks, fraud monitor and the scikit-learn model) runs in 
 on the server in ``web.lab``. The browser only draws the card, runs the hold-to-scan
 animation and Touch ID, and calls the JSON API below.
 
-Run locally:   python -m web            (http://127.0.0.1:5000)
+Run locally:   python -m web            (http://127.0.0.1:8000)
 Production:    gunicorn "web:create_app()" --workers 1 --threads 8
 Labs are kept in memory, so run a single worker process.
 """
