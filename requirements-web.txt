@@ -1,0 +1,6 @@
+# Flask version of the card lab (python -m web locally, gunicorn on Render)
+flask>=3.0
+gunicorn>=23.0
+pyotp>=2.9
+numpy>=1.26
+scikit-learn>=1.3

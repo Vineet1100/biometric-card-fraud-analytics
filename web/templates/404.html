@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Not found{% endblock %}
+{% block nova %}That page doesn't exist.{% endblock %}
+{% block content %}
+<section class="panel nf"><h2>Page not found</h2><p>Pick a page from the menu above, or <a href="{{ url_for('home') }}">go home</a>.</p></section>
+{% endblock %}

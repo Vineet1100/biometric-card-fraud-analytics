@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}How it works{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-h"><h2>What happens when you pay</h2><span>in order</span></div>
+  <div class="flow">{% for name, text in flow %}<div><b>{{ name }}</b>{{ text }}</div>{% endfor %}</div>
+</section>
+<div class="how">
+  {% for n, b in brief.items() %}
+  <section class="panel">
+    <div class="panel-h"><h2>0{{ n }} {{ b.title }}</h2><a class="btn" href="{{ url_for('mission', route=missions[n].route) }}">Try it</a></div>
+    <div class="brief"><p>{{ b.body }}</p>
+      <h4>UNDER THE HOOD</h4><ul>{% for t in b.how %}<li>{{ t }}</li>{% endfor %}</ul>
+      <h4>BUILT WITH</h4><div class="tags">{% for t in b.tech %}<span class="tag">{{ t }}</span>{% endfor %}</div></div>
+  </section>
+  {% endfor %}
+</div>
+<section class="panel">
+  <div class="panel-h"><h2>Where the code runs</h2><span>Flask</span></div>
+  <div class="pad brief"><ul>
+    <li>Flask renders every page and keeps a separate card and bank for each visitor, in memory on the server.</li>
+    <li>The bank's rules, the TOTP codes (pyotp), the attacks, the fraud monitor and the scikit-learn model all run in Python.</li>
+    <li>The page only draws the card, runs the hold-to-scan animation and Touch ID, and asks the server what happened.</li>
+  </ul></div>
+</section>
+{% endblock %}

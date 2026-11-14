@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="panel hero-copy">
+    <h2>A payment card that only works for its owner</h2>
+    <p>Unlock it with a fingerprint, pay in a store and online, then try to break in and watch the bank catch you. Each mission is its own page, and the Python bank server remembers your card, payments and alerts as you move between them.</p>
+    <div class="progress"><div class="bar2"><span style="width:{{ (done|length) * 25 }}%"></span></div><small>{{ done|length }} of 4 missions complete</small></div>
+    <div class="row">
+      {% if next_mission %}
+      <a class="btn gold" href="{{ url_for('mission', route=missions[next_mission].route) }}">{% if done %}Continue: mission 0{{ next_mission }}{% else %}Start mission 01{% endif %}</a>
+      {% else %}
+      <a class="btn gold" href="{{ url_for('bank_page') }}">All done: see the bank server</a>
+      {% endif %}
+      <a class="btn" href="{{ url_for('how') }}">How it works</a>
+    </div>
+  </div>
+  <div class="panel hero-stats">
+    <div class="stat"><b data-stat="attempts">{{ stats.attempts }}</b><span>Payment attempts</span></div>
+    <div class="stat"><b data-stat="approved" class="ok">{{ stats.approved }}</b><span>Approved</span></div>
+    <div class="stat"><b data-stat="blocked" class="bad">{{ stats.blocked }}</b><span>Fraud blocked</span></div>
+    <div class="stat"><b data-stat="alerts" class="warn">{{ stats.alerts }}</b><span>Alerts</span></div>
+  </div>
+</div>
+<div class="mgrid">
+  {% for n, m in missions.items() %}
+  <a class="panel mcard {% if n in done %}isdone{% endif %}" href="{{ url_for('mission', route=m.route) }}">
+    <small>MISSION 0{{ n }}</small><h3>{{ m.name }}</h3><p>{{ m.card }}</p>
+    <span class="go">{% if n in done %}Complete &#10003; Replay &rarr;{% else %}Start &rarr;{% endif %}</span>
+  </a>
+  {% endfor %}
+</div>
+<div class="more">
+  <a class="panel mcard" href="{{ url_for('bank_page') }}"><small>BANK SERVER</small><h3>Every attempt, live</h3><p>The bank's log of approvals and declines, and the alerts its fraud monitor raised.</p><span class="go">Open &rarr;</span></a>
+  <a class="panel mcard" href="{{ url_for('how') }}"><small>HOW IT WORKS</small><h3>The security, step by step</h3><p>Match-on-card fingerprints, TOTP codes, push approval, and the anomaly models.</p><span class="go">Open &rarr;</span></a>
+</div>
+{% endblock %}

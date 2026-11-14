@@ -20,7 +20,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -r requirements-bank.txt pytest
+      - run: pip install -r requirements-bank.txt -r requirements-web.txt pytest
       - run: pytest -q
 
   static-analysis:
@@ -34,7 +34,7 @@ jobs:
           python-version: "3.12"
       - run: pip install bandit
       - name: Bandit (medium and high severity)
-        run: bandit -r bank mcp_server app.py -ll
+        run: bandit -r bank mcp_server web app.py -ll
 
   dependencies:
     runs-on: ubuntu-latest
@@ -47,7 +47,7 @@ jobs:
           python-version: "3.12"
       - run: pip install pip-audit
       - name: Known vulnerabilities in dependencies
-        run: pip-audit -r requirements-bank.txt -r requirements.txt
+        run: pip-audit -r requirements-bank.txt -r requirements.txt -r requirements-web.txt
 
   secrets:
     runs-on: ubuntu-latest

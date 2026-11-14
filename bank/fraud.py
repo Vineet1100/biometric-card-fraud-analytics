@@ -70,3 +70,20 @@ def score(amount: float, hour: int, online: bool) -> Score:
     else:
         reason = "fits normal spending"
     return Score(round(z, 2), lof_flagged, z > ROBUST_Z_LIMIT or lof_flagged, reason)
+
+
+def lof_details(amount: float, hour: int, online: bool) -> tuple[float, float]:
+    """The Local Outlier Factor for one purchase and the score above which it is flagged."""
+    model = _model()
+    features = _features(np.array([amount]), np.array([hour]), np.array([online]))
+    lof = float(-model.score_samples(features)[0])
+    return lof, float(-model[-1].offset_)
+
+
+def history() -> list[dict]:
+    """The simulated past purchases the model learned from, for charting."""
+    h = _history()
+    return [
+        {"amount": round(float(a), 2), "hour": int(hr), "online": bool(o)}
+        for a, hr, o in zip(h["amount"], h["hour"], h["online"], strict=True)
+    ]

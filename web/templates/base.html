@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}{% endblock %} | Biometric Card Lab</title>
+<meta name="description" content="Interactive demo of a biometric payment card with a dynamic CVV, push approval and fraud detection, running on Flask.">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ url_for('static', filename='lab.css') }}">
+</head>
+<body data-page="{{ active }}">
+<div class="wrap">
+  <header class="bar">
+    <div class="brand">
+      <div class="reactor-mini" aria-hidden="true"></div>
+      <div>
+        <h1>BIOMETRIC CARD LAB</h1>
+        <p>A payment card that only works for its owner. Built by Vineet Parikh, University of Waterloo.</p>
+      </div>
+    </div>
+    <div class="bar-right">
+      <span class="chip"><i></i>Python bank server online</span>
+      <span class="chip" id="clockChip">Clock: now</span>
+      <a class="btn" href="https://github.com/Vineet1100/biometric-card-fraud-analytics" target="_blank" rel="noopener">View code on GitHub</a>
+    </div>
+  </header>
+
+  <nav class="pnav" aria-label="Pages">
+    <a href="{{ url_for('home') }}" {% if active == 'home' %}aria-current="page"{% endif %}>Home</a>
+    <span class="sep" aria-hidden="true"></span>
+    {% for n, m in missions.items() %}
+    <a href="{{ url_for('mission', route=m.route) }}" {% if active == m.route %}aria-current="page"{% endif %}><small>0{{ n }}</small>{{ m.name }}<span class="tick" data-tick="{{ n }}">{% if n in done %}&#10003;{% endif %}</span></a>
+    {% endfor %}
+    <span class="sep" aria-hidden="true"></span>
+    <a href="{{ url_for('bank_page') }}" {% if active == 'bank' %}aria-current="page"{% endif %}>Bank server<span class="badge" id="navAlerts" {% if not alerts %}hidden{% endif %}>{{ alerts|length }}</span></a>
+    <a href="{{ url_for('how') }}" {% if active == 'how' %}aria-current="page"{% endif %}>How it works</a>
+  </nav>
+
+  <div class="nova" role="status" aria-live="polite"><b>NOVA &gt;</b><span id="nova">{% block nova %}Systems online. Pick a mission, or start with 01: hold the glowing sensor to unlock the card.{% endblock %}</span></div>
+
+  <main class="page" id="main">
+  {% block content %}{% endblock %}
+  </main>
+</div>
+<div class="toasts" id="toasts" aria-live="assertive"></div>
+<script>window.LAB = {bank: "{{ url_for('bank_page') }}", seenAlerts: {{ alerts|length }}};</script>
+<script src="{{ url_for('static', filename='lab.js') }}" defer></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Render Blueprint: New > Blueprint in the Render dashboard, then pick this repo.
+services:
+  - type: web
+    name: biometric-card-lab
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements-web.txt
+    # one worker: each visitor's card and bank live in that process's memory
+    startCommand: gunicorn "web:create_app()" --workers 1 --threads 8 --timeout 60 --bind 0.0.0.0:$PORT
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        generateValue: true

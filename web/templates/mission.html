@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}{{ mission.name }}{% endblock %}
+{% block nova %}{% if m == 1 %}Mission 01: tap first to see the decline, then hold the glowing sensor to unlock the card.{% elif m == 2 %}Mission 02: read the code off the card, pay, then approve the purchase.{% elif m == 3 %}Mission 03: pick an attack and watch the bank stop it.{% else %}Mission 04: set up a purchase and ask the model if it looks like the owner.{% endif %}{% endblock %}
+{% block content %}
+<div class="main" data-mission="{{ m }}">
+  <!-- card + sensor -->
+  <section class="panel" aria-label="The card">
+    <div class="panel-h"><h2>The card</h2><span id="cvvTimer" class="num">CVV changes in 2:00</span></div>
+    <div class="stage">
+      <div class="card" id="card">
+        <div class="c-row"><div><div class="c-brand">NOVA BANK</div><div class="c-tier">BIOMETRIC</div></div>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5EE7FF" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M8 8.5a5 5 0 0 1 0 7"/><path d="M11.5 6a9 9 0 0 1 0 12"/><path d="M15 3.5a13 13 0 0 1 0 17"/></svg></div>
+        <div class="c-row" style="justify-content:flex-start"><div class="c-chip"></div><span class="c-state" id="cState">Chip locked</span></div>
+        <div class="c-pan">4111 1111 1111 1111</div>
+        <div class="c-row" style="align-items:flex-end">
+          <div class="c-meta">Cardholder<b>ALEX MORGAN</b>Valid thru<b>12/29</b></div>
+          <div class="eink" aria-label="Dynamic CVV"><small>Dynamic CVV</small><b id="cvv">---</b><i><span id="cvvBar" style="width:100%"></span></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="sensor pad">
+      <button class="reactor" id="reactor" aria-label="Fingerprint sensor. Press and hold to scan.">
+        <svg viewBox="0 0 180 180" aria-hidden="true">
+          <circle cx="90" cy="90" r="84" fill="none" stroke="rgba(94,231,255,.18)" stroke-width="2"/>
+          <g class="spin"><circle cx="90" cy="90" r="76" fill="none" stroke="rgba(94,231,255,.5)" stroke-width="2" stroke-dasharray="10 14"/></g>
+          <circle cx="90" cy="90" r="66" fill="none" stroke="rgba(94,231,255,.12)" stroke-width="8"/>
+          <circle id="ring" cx="90" cy="90" r="66" fill="none" stroke="#5EE7FF" stroke-width="8" stroke-linecap="round" stroke-dasharray="0 415" transform="rotate(-90 90 90)"/>
+        </svg>
+        <span class="core"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 4a7 7 0 0 0-7 7v2"/><path d="M19 13v-2a7 7 0 0 0-3.5-6.06"/><path d="M12 7.5a3.5 3.5 0 0 0-3.5 3.5v3a6 6 0 0 0 1.2 3.6"/><path d="M15.5 11v2.5a9 9 0 0 1-.9 4"/><path d="M12 11v3.5a8 8 0 0 0 1.5 4.7"/></svg></span>
+      </button>
+      <div class="sensor-read"><b id="sensorBig">LOCKED</b><span id="sensorSmall">Press and hold the sensor to scan</span></div>
+      <p class="tid-note" id="tidNote" hidden>Your real fingerprint and laptop notifications only work when the demo has its own browser tab.</p>
+      <div class="finger" id="modeRow" hidden><span>Sensor:</span>
+        <div class="seg" role="group" aria-label="Sensor"><button id="mTouch" aria-pressed="true">Touch ID</button><button id="mSim" aria-pressed="false">Simulated</button></div>
+      </div>
+      <div class="finger" id="fingerRow"><span>Finger on sensor:</span>
+        <div class="seg" role="group" aria-label="Whose finger"><button id="fOwner" aria-pressed="true">Owner</button><button id="fThief" aria-pressed="false">Stranger</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- mission -->
+  <section class="panel" aria-labelledby="mTitle">
+    <div class="mhead"><small>MISSION 0{{ m }} OF 04 <span class="done" id="mDone" {% if m not in done %}hidden{% endif %}>COMPLETE</span></small>
+      <div class="steps" aria-hidden="true">{% for n in missions %}<i class="{% if n == m %}on{% elif n in done %}ok{% endif %}"></i>{% endfor %}</div></div>
+    <div class="mission">
+      <h3 id="mTitle">{{ mission.title }}</h3>
+      <p class="lead">{{ mission.lead }}</p>
+      {% if m == 1 %}
+      <div class="row">
+        <div class="field" style="flex:1 1 160px"><label for="posAmt">AMOUNT (CAD)</label><input class="input num" id="posAmt" type="number" min="0.01" step="0.01" value="42.50"></div>
+        <button class="btn gold" id="tapBtn">Tap card at terminal</button>
+      </div>
+      <div class="lcd" id="lcd"><div class="big">TAP CARD</div><div>Corner Market terminal ready</div></div>
+      {% elif m == 2 %}
+      <div class="row">
+        <div class="field" style="flex:2 1 200px"><label for="coPan">CARD NUMBER</label><input class="input num" id="coPan" value="4111 1111 1111 1111" autocomplete="off"></div>
+        <div class="field" style="flex:1 1 90px"><label for="coCvv">CVV</label><input class="input num" id="coCvv" maxlength="3" inputmode="numeric" placeholder="123" autocomplete="off"></div>
+        <div class="field" style="flex:1 1 110px"><label for="coAmt">TOTAL (CAD)</label><input class="input num" id="coAmt" type="number" min="0.01" step="0.01" value="249.99"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="readCvv">Read CVV from card</button>
+        <button class="btn gold" id="payBtn">Pay at Northwind Electronics</button>
+      </div>
+      <div id="pushBox"></div>
+      <div class="lcd" id="shopLcd" hidden></div>
+      {% elif m == 3 %}
+      <div class="split">
+        <div class="attack"><h4>Replay stolen card data</h4><p>Card details leaked in a breach a few minutes ago. The CVV has already changed.</p><button class="btn red" data-attack="replay">Run attack</button></div>
+        <div class="attack"><h4>Card testing</h4><p>A thief taps a stolen card again and again, hoping one goes through.</p><button class="btn red" data-attack="testing">Run attack</button></div>
+        <div class="attack"><h4>Guess the CVV</h4><p>A bot guesses codes. There are only 1,000, so the bank cuts it off after 3 misses.</p><button class="btn red" data-attack="guess">Run attack</button></div>
+      </div>
+      <div class="lcd" id="atkLcd" hidden></div>
+      {% else %}
+      <div class="chart-wrap"><canvas id="chart" aria-label="Spending profile: amount by hour of day"></canvas><div class="tip" id="tip" hidden></div></div>
+      <div class="legend"><span><i style="background:rgba(94,231,255,.45);border-radius:50%"></i>Past purchases</span><span><i style="background:var(--green);border-radius:50%"></i>Approved today</span><span><i style="background:var(--red)"></i>Declined today</span><span><i style="background:var(--gold);transform:rotate(45deg)"></i>Purchase being tested</span></div>
+      <div class="split" style="margin-top:14px">
+        <div class="field"><label for="aiAmt">AMOUNT: <span id="aiAmtV" class="num">$42.50</span></label><input type="range" id="aiAmt" min="0" max="1000" value="0"></div>
+        <div class="field"><label for="aiHour">TIME OF DAY: <span id="aiHourV" class="num">12:00</span></label><input type="range" id="aiHour" min="0" max="23" value="12"></div>
+        <div class="field"><label>CHANNEL</label><div class="seg" role="group" aria-label="Channel"><button id="chStore" aria-pressed="true">In store</button><button id="chOnline" aria-pressed="false">Online</button></div></div>
+      </div>
+      <div class="presets" style="margin-top:12px">
+        <button class="btn" data-preset="42.5,12,0">Lunch at noon</button>
+        <button class="btn" data-preset="42.5,3,0">Same lunch at 3 AM</button>
+        <button class="btn" data-preset="1200,14,1">$1,200 online</button>
+        <button class="btn" data-preset="85,20,1">Evening online order</button>
+      </div>
+      <div class="verdict">
+        <div class="gauge"><small>VERDICT</small><b id="vOut">-</b><span id="vWhy"></span></div>
+        <div class="gauge"><small>AMOUNT CHECK (Z-SCORE)</small><b id="vZ" class="num">-</b><span>flags above 3.5</span></div>
+        <div class="gauge"><small>PATTERN CHECK (LOF)</small><b id="vL" class="num">-</b><span id="vLt">flags above -</span></div>
+      </div>
+      <p class="srv">Scored by scikit-learn on the Flask server.</p>
+      {% endif %}
+    </div>
+    <div class="mnav">
+      {% if prev %}<a class="btn" href="{{ url_for('mission', route=prev.route) }}">&larr; {{ prev.name }}</a>{% else %}<a class="btn" href="{{ url_for('home') }}">&larr; Home</a>{% endif %}
+      {% if next %}<a class="btn gold" href="{{ url_for('mission', route=next.route) }}">Next: {{ next.name }} &rarr;</a>{% else %}<a class="btn gold" href="{{ url_for('bank_page') }}">See the bank server &rarr;</a>{% endif %}
+    </div>
+  </section>
+
+  <!-- briefing -->
+  <aside class="panel brief-panel" aria-label="Briefing">
+    <div class="panel-h"><h2>Briefing</h2><span>plain English</span></div>
+    <div class="pad brief">
+      <h3>{{ brief.title }}</h3><p>{{ brief.body }}</p>
+      <h4>UNDER THE HOOD</h4><ul>{% for t in brief.how %}<li>{{ t }}</li>{% endfor %}</ul>
+      <h4>BUILT WITH</h4><div class="tags">{% for t in brief.tech %}<span class="tag">{{ t }}</span>{% endfor %}</div>
+      <div class="foot">The card rules, codes, attacks and fraud models run in Python on a Flask server. On a Mac the sensor uses your real Touch ID through passkeys. The code is on <a href="https://github.com/Vineet1100/biometric-card-fraud-analytics" target="_blank" rel="noopener">GitHub</a>.</div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

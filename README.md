@@ -4,9 +4,9 @@ A Streamlit app that simulates a payment card that only works for its owner, plu
 
 I wanted to see how a few ideas from card security fit together in one place: biometric cards, dynamic CVVs, step-up authentication and transaction monitoring. So I built all three parties (card, merchants, bank) into a single app you can click through.
 
-**Live demo:** https://vineet1100.github.io/biometric-card-fraud-analytics/
+**Live demo:** runs on Flask, hosted on Render (see [Hosting the demo](#hosting-the-demo) to put it online).
 
-The live demo is a browser version of the app (`docs/index.html`) so it runs from a link with nothing to install. It has a page for each mission (pay in store, pay online, attack the card, fraud AI), plus a home page that tracks your progress, a bank server page with the log and alerts, and a how-it-works page. Each page has its own link, such as `#/fraud-ai`, and the card, payments and alerts carry over as you move between them. It uses the same TOTP and fraud-detection methods as `app.py`. On a Mac it asks for your real fingerprint through Touch ID (using a passkey) and sends purchase approvals as a notification on your laptop. On devices without Touch ID the sensor is simulated.
+The demo is a Flask app (`web/`) with a page for each mission (pay in store, pay online, attack the card, fraud AI), plus a home page that tracks your progress, a bank server page with the log and alerts, and a how-it-works page. Every rule runs in Python on the server: the fingerprint unlock window, the TOTP codes, the approvals, the attacks, the fraud monitor and the scikit-learn model. Each visitor gets their own card and bank, kept for 2 hours. The page itself only draws the card, runs the hold-to-scan animation and asks the server what happened. On a Mac it asks for your real fingerprint through Touch ID (using a passkey) and sends purchase approvals as a notification on your laptop. On devices without Touch ID the sensor is simulated.
 
 ## What it does
 
@@ -92,11 +92,31 @@ pytest
 
 On every push, GitHub Actions runs the tests, Bandit (insecure code), pip-audit (vulnerable dependencies) and gitleaks (leaked secrets in the full history). To report a vulnerability, see [SECURITY.md](SECURITY.md).
 
+## Hosting the demo
+
+Run the Flask version on your computer:
+
+```bash
+pip install -r requirements-web.txt
+python -m web
+```
+
+Then open http://127.0.0.1:5000.
+
+To put it online for free on [Render](https://render.com):
+
+1. Sign in to Render with your GitHub account.
+2. Click **New**, then **Blueprint**, and pick this repository. Render reads `render.yaml` and sets everything up, including a random `SECRET_KEY`.
+3. When the deploy finishes, your link is shown at the top, something like `https://biometric-card-lab.onrender.com`. Put it in the Live demo line at the top of this README.
+
+Every push to `main` redeploys it. On the free plan the app goes to sleep after 15 minutes without visitors, so the first visit after that takes about a minute to load. It must run as one worker process (as `render.yaml` does), because each visitor's card and bank live in that process's memory.
+
 ## Project structure
 
 ```
 app.py, style.css        Streamlit app (card, merchants, bank in one process)
-docs/index.html          browser demo served by GitHub Pages
+web/                     Flask demo: pages, JSON API and per-visitor card and bank
+render.yaml              Render hosting setup
 bank/                    bank API: signing, authorization, fraud monitor, audit log
 mcp_server/              read-only MCP server for AI agents
 tests/                   attack and payment-flow tests
@@ -111,6 +131,7 @@ It's a prototype, so a few things are simplified:
 - in-store cryptograms use one HMAC key instead of EMV keys derived per card
 - the device signs approvals with a shared key instead of a verified passkey signature
 - the spending history is generated with NumPy, not real transaction data
+- in the Flask demo, the browser reports whether Touch ID matched; a real bank would verify the passkey signature on the server
 - in the Streamlit app, decline reasons are detailed on purpose; the bank API only gives merchants generic codes
 
 SYSTEM_DESIGN.md lists everything a production deployment would add.

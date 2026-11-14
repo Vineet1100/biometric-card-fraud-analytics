@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Bank server{% endblock %}
+{% block nova %}{% if ledger %}Every payment you made is below, newest first, with the alerts the fraud monitor raised.{% else %}No payments yet. Run a mission and the bank server will log every attempt here.{% endif %}{% endblock %}
+{% block content %}
+<div class="deck">
+  <section class="panel" aria-label="Bank server">
+    <div class="panel-h"><h2>Bank server</h2><span>every attempt, live</span></div>
+    <div class="stats" style="margin-top:10px">
+      <div class="stat"><b data-stat="attempts">{{ stats.attempts }}</b><span>Attempts</span></div>
+      <div class="stat"><b data-stat="approved" class="ok">{{ stats.approved }}</b><span>Approved</span></div>
+      <div class="stat"><b data-stat="blocked" class="bad">{{ stats.blocked }}</b><span>Fraud blocked</span></div>
+      <div class="stat"><b data-stat="alerts" class="warn">{{ stats.alerts }}</b><span>Alerts</span></div>
+      <div class="stat"><b data-stat="volume" class="num">${{ '{:,.2f}'.format(stats.volume) }}</b><span>Approved volume</span></div>
+    </div>
+    <ul class="log" id="log">
+      {% for e in ledger %}
+      <li><time class="num" data-t="{{ e.t }}"></time><span class="ch">{{ e.channel }}</span><span><span class="pill {{ 'ok' if e.ok else 'bad' }}">{{ 'APPROVED' if e.ok else 'DECLINED' }}</span> {{ e.reason }}</span><span class="amt">${{ '{:,.2f}'.format(e.amount) }}</span></li>
+      {% else %}
+      <li class="empty" style="display:block">No payments yet. Run a mission to fill the log.</li>
+      {% endfor %}
+    </ul>
+  </section>
+  <section class="panel" aria-label="Fraud alerts">
+    <div class="panel-h"><h2>Fraud alerts</h2><span>pattern monitor</span></div>
+    <ul class="alerts" id="alerts">
+      {% for a in alerts %}
+      <li><span class="sev {{ a.sev }}">{{ 'HIGH' if a.sev == 'high' else 'MEDIUM' }}</span><b>{{ a.title }}</b><p>{{ a.text }}</p></li>
+      {% else %}
+      <li class="empty">Quiet so far. Mission 03 will change that.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}
