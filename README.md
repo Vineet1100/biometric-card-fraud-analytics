@@ -94,14 +94,24 @@ On every push, GitHub Actions runs the tests, Bandit (insecure code), pip-audit 
 
 ## Hosting the demo
 
-Run the Flask version on your computer:
+Run the Flask version on your computer. In Terminal:
 
 ```bash
-pip install -r requirements-web.txt
-python -m web
+cd ~/biometric-card-fraud-analytics          # go into the project folder first
+python3 -m pip install -r requirements-web.txt   # installs Flask and the other packages (first time only)
+python3 -m web                               # starts the app
 ```
 
-Then open http://127.0.0.1:8000.
+When it prints `Biometric card lab running at http://127.0.0.1:8000`, open http://127.0.0.1:8000 in your browser. Press Ctrl+C in Terminal to stop it.
+
+If something goes wrong:
+
+| What you see | Why | Fix |
+| --- | --- | --- |
+| `No module named flask` (or `pyotp`, `sklearn`, `numpy`) | The packages aren't installed for the Python you're using | Run the `python3 -m pip install -r requirements-web.txt` line again, then `python3 -m web` |
+| `No module named web` | Terminal isn't in the project folder | Run `cd ~/biometric-card-fraud-analytics` first |
+| "Access to 127.0.0.1 was denied" (HTTP 403) | You opened port 5000, which macOS uses for AirPlay Receiver | Open http://127.0.0.1:8000 instead |
+| `Address already in use` | The app (or something else) is already running on port 8000 | Stop the other one with Ctrl+C, or run `PORT=8001 python3 -m web` and open port 8001 |
 
 To put it online for free on [Render](https://render.com):
 
